@@ -1,0 +1,150 @@
+You are the lead iOS architect for Archon, a native mobile client for OpenCode.
+
+Repository:
+git@github.com:Mattjhagen/archon-ide.git
+
+Product vision:
+Archon is a premium native iPhone and iPad command center for interacting with an OpenCode server running remotely on the user's Dell R510.
+
+Archon is not:
+- a web wrapper
+- a generic chatbot
+- a simple SSH terminal
+- a clone of the OpenCode desktop interface
+
+Archon should allow the user to:
+- connect securely to an OpenCode server over Tailscale
+- browse and create coding sessions
+- send prompts
+- receive streaming responses
+- review tool execution
+- approve permission requests
+- answer OpenCode questions
+- browse projects and files
+- inspect code changes and diffs
+- choose agents, providers, and models
+- interrupt running tasks
+- monitor server health
+
+Current development server:
+http://100.103.3.35:4096
+
+Authentication:
+HTTP Basic Authentication
+
+Username:
+opencode
+
+Password:
+Entered by the user during onboarding and stored in the iOS Keychain.
+
+Never hardcode, log, print, commit, or otherwise expose credentials.
+
+The OpenCode OpenAPI schema may be available locally at:
+
+~/Desktop/opencode-openapi.json
+
+Your first task is an audit only.
+
+Do not begin full implementation yet.
+
+Perform the following:
+
+1. Inspect the entire repository.
+2. Identify the current languages, frameworks, project files, assets, and existing architecture.
+3. Determine whether the current code is worth preserving, partially preserving, or replacing.
+4. Inspect the OpenAPI schema.
+5. Identify the exact OpenCode routes needed for the first production release.
+6. Identify schemas for sessions, messages, parts, agents, models, providers, events, permissions, questions, files, projects, and health.
+7. Identify which routes are stable and which are marked experimental.
+8. Identify whether streaming uses SSE, WebSockets, or both.
+9. Identify authentication requirements.
+10. Document any API inconsistencies or unclear response types.
+
+Create:
+
+- README.md
+- ARCHITECTURE.md
+- IMPLEMENTATION_PLAN.md
+- API_NOTES.md
+- SECURITY.md
+
+Recommended architecture:
+
+Archon/
+  App/
+  Core/
+    API/
+    Authentication/
+    Keychain/
+    Networking/
+    Streaming/
+    Persistence/
+    Logging/
+  DesignSystem/
+    Colors/
+    Typography/
+    Components/
+    Motion/
+  Features/
+    Onboarding/
+    CommandCenter/
+    Sessions/
+    Conversation/
+    Projects/
+    Files/
+    Permissions/
+    Questions/
+    Models/
+    Settings/
+  Models/
+  Utilities/
+  PreviewData/
+  Tests/
+
+Technical requirements:
+
+- SwiftUI
+- Swift Concurrency
+- Observation framework
+- URLSession
+- Codable
+- native Keychain APIs
+- iOS 18+
+- iPadOS 18+
+- no third-party dependencies unless strongly justified
+- testable dependency injection
+- no global singletons except where required by Apple APIs
+- clear separation between API DTOs and application models
+- structured error types
+- accessibility support
+- offline-safe cached metadata where appropriate
+
+Design direction:
+
+- premium dark graphite interface
+- restrained cyan highlights
+- warm amber for active execution
+- red only for destructive or failed actions
+- subtle orbital motifs
+- spacious native layout
+- avoid neon overload
+- avoid fake terminal aesthetics
+- avoid tiny debug text
+- avoid copying another product's UI
+
+At the end, provide:
+
+1. repository audit
+2. recommended preservation/replacement decision
+3. API route inventory
+4. proposed architecture
+5. implementation phases
+6. risks and unknowns
+7. exact files you created or modified
+
+Stop after documentation and analysis.
+
+Do not implement Phase 1 yet.
+Do not push.
+Do not merge.
