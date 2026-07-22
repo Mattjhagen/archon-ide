@@ -1,0 +1,107 @@
+Implement Phase 4 of Archon: conversation history and prompt submission.
+
+Use the exact message and prompt routes from the OpenCode OpenAPI schema.
+
+The conversation view must support OpenCode's structured message format.
+
+Do not assume every message is plain text.
+
+Inspect and support message parts such as:
+
+- user text
+- assistant text
+- reasoning
+- tool calls
+- tool results
+- shell execution
+- file changes
+- errors
+- system messages
+- metadata
+- citations or references if provided
+- step start
+- step finish
+
+Create typed application models:
+
+ConversationMessage
+MessageRole
+MessagePart
+TextPart
+ReasoningPart
+ToolCallPart
+ToolResultPart
+ShellPart
+FileChangePart
+ErrorPart
+StepPart
+
+Unknown message part types must not crash decoding.
+
+Preserve unknown fields in a safe fallback representation where practical.
+
+Build:
+
+- ConversationView
+- ConversationViewModel
+- MessageListView
+- UserMessageView
+- AssistantMessageView
+- ReasoningDisclosureView
+- ToolCallCard
+- ToolResultCard
+- ShellExecutionCard
+- FileChangeCard
+- ErrorMessageCard
+- PromptComposer
+- StopGenerationButton
+
+Prompt composer requirements:
+
+- multiline input
+- send button
+- keyboard dismissal
+- disable empty submissions
+- prevent accidental duplicate sends
+- show queued/sending/running state
+- support interruption
+- preserve unsent draft text
+- support hardware keyboard command-return sending
+- allow plain return for a new line
+
+Rendering requirements:
+
+- selectable text
+- monospaced code blocks
+- horizontal scrolling for long code
+- copy actions
+- Markdown-style rendering using native components where possible
+- no unsafe HTML rendering
+- collapse long reasoning and tool content by default
+- auto-scroll only when the user is already near the bottom
+- never yank the user to the bottom while they are reading older content
+
+Implement prompt submission without SSE first.
+
+After sending:
+- refresh messages
+- show progress state
+- allow manual refresh
+
+Tests:
+
+- decoding all known message part types
+- unknown part fallback
+- prompt request encoding
+- duplicate send prevention
+- draft preservation
+- interruption state
+- message ordering
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-conversation
+
+Do not push.
