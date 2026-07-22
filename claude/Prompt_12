@@ -1,0 +1,112 @@
+Perform the final hardening pass for Archon.
+
+Do not add major new features.
+
+Audit:
+
+- security
+- networking
+- credential storage
+- memory usage
+- concurrency
+- state handling
+- accessibility
+- error handling
+- iPad layout
+- lifecycle behavior
+- reconnect behavior
+- offline behavior
+- test coverage
+- logging
+- release configuration
+
+Security checklist:
+
+- no committed secrets
+- no hardcoded passwords
+- no Authorization headers in logs
+- no credentials in UserDefaults
+- no credentials in analytics
+- no credentials in crash messages
+- Keychain deletion works
+- HTTP warning is visible
+- URL validation prevents malformed endpoints
+- API errors do not leak sensitive data
+
+Networking checklist:
+
+- reasonable timeouts
+- request cancellation
+- authenticated SSE
+- background/foreground handling
+- deduplicated streams
+- bounded retry
+- no infinite request loops
+- clear handling of 401
+- clear handling of server version incompatibility
+
+UX checklist:
+
+- empty states
+- loading states
+- error states
+- retry actions
+- destructive confirmations
+- Dynamic Type
+- VoiceOver labels
+- Reduce Motion
+- keyboard navigation
+- iPad split view
+- landscape
+- no clipped text
+- no tiny touch targets
+
+Testing checklist:
+
+- API request construction
+- authentication
+- Keychain
+- health
+- sessions
+- messages
+- SSE parser
+- SSE reducer
+- permissions
+- questions
+- filesystem
+- diffs
+- model selection
+- error mapping
+- lifecycle reconnect
+
+Create:
+
+- RELEASE_CHECKLIST.md
+- TESTING.md
+- PRIVACY.md
+- CHANGELOG.md
+- CONTRIBUTING.md
+
+Run:
+
+- clean build
+- all unit tests
+- all UI tests that can run reliably
+- Swift compiler warnings review
+- static analysis where available
+
+Fix all meaningful warnings.
+
+Document any warning that cannot reasonably be removed.
+
+Use an iPhone simulator and iPad simulator.
+
+Provide exact commands and results.
+
+Create a final release candidate branch:
+
+release/archon-1.0-foundation
+
+Do not merge.
+Do not push.
+Do not claim App Store readiness unless every documented requirement has actually been verified.
