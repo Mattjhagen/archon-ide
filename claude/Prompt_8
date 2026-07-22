@@ -1,0 +1,88 @@
+Implement Phase 7 of Archon: project and filesystem browsing.
+
+Use OpenCode's exact project, workspace, reference, and filesystem routes.
+
+Do not assume unrestricted access to the server filesystem.
+
+Only display locations exposed by the OpenCode API.
+
+Build:
+
+- ProjectsView
+- ProjectListView
+- ProjectDetailView
+- FileBrowserView
+- FileRowView
+- FilePreviewView
+- FileSearchView
+- BreadcrumbView
+- ChangedFilesView
+- DiffViewer
+
+Support:
+
+- list projects or workspaces
+- display working directory
+- browse directories
+- open text files
+- identify binary files
+- display file metadata
+- search files when supported
+- refresh directory contents
+- show modified files
+- show additions, deletions, and renames
+- render diffs
+- copy file paths
+- open the associated OpenCode session
+
+File preview requirements:
+
+- monospaced readable presentation
+- line numbers
+- horizontal scrolling
+- preserve indentation
+- recognize common source file extensions
+- display large-file warning
+- avoid loading extremely large files blindly
+- avoid editing files in the first release
+- no arbitrary path traversal outside API-exposed locations
+
+Diff viewer requirements:
+
+- unified and split mode if practical
+- additions and deletions clearly differentiated
+- line numbers
+- file summary
+- collapse unchanged sections
+- accessible labels not dependent solely on color
+
+Create typed models:
+
+Project
+Workspace
+FileNode
+FileMetadata
+FileContent
+FileLanguage
+ChangedFile
+DiffHunk
+DiffLine
+
+Tests:
+
+- directory decoding
+- file decoding
+- binary file behavior
+- path normalization
+- traversal prevention
+- diff parsing
+- large-file limits
+- project selection
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-projects
+
+Do not push.
