@@ -1,0 +1,70 @@
+Implement Phase 9 of Archon: Command Center and Activity.
+
+The Command Center should provide a useful overview without becoming a noisy server dashboard.
+
+Display:
+
+- OpenCode server connection
+- server version
+- active sessions
+- running tasks
+- pending permissions
+- pending questions
+- recent sessions
+- active model
+- current project
+- recent failures
+- reconnect status
+
+Create:
+
+- CommandCenterView
+- CommandCenterViewModel
+- ServerHealthCard
+- ActiveSessionCard
+- PendingActionsCard
+- RecentSessionsCard
+- CurrentConfigurationCard
+- ActivityTimelineView
+- ActivityEventRow
+
+Activity should summarize meaningful events:
+
+- prompt sent
+- execution started
+- tool executed
+- file changed
+- permission requested
+- question requested
+- execution completed
+- execution interrupted
+- execution failed
+- server disconnected
+- server reconnected
+
+Avoid showing every token or raw transport event.
+
+Provide drill-down navigation from cards into the relevant feature.
+
+Add optional subtle orbital motion only when:
+
+- Reduce Motion is disabled
+- it does not distract
+- it does not affect performance
+
+Tests:
+
+- dashboard aggregation
+- active session detection
+- pending action count
+- activity filtering
+- health state mapping
+- reconnect state
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-command-center
+
+Do not push.
