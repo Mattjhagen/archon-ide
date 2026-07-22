@@ -1,0 +1,79 @@
+Implement Phase 3 of Archon: OpenCode session management.
+
+Use the exact session routes and schemas from the OpenAPI document.
+
+Archon must support:
+
+- list sessions
+- create session
+- open session
+- refresh sessions
+- rename session when supported
+- archive session when supported
+- delete session when supported
+- interrupt a running session
+- display session state
+- display last update time
+- display active model and agent when available
+- display project or working directory when available
+
+Create application models separate from API DTOs.
+
+Suggested models:
+
+ArchonSession
+SessionState
+SessionSummary
+SessionMetadata
+CreateSessionRequest
+SessionSortOrder
+
+Create:
+
+- SessionsRepository
+- SessionsViewModel
+- SessionsListView
+- SessionRowView
+- NewSessionSheet
+- SessionDetailPlaceholderView
+- SessionContextMenu
+
+UI behavior:
+
+- searchable session list
+- sort by most recently active
+- pull to refresh
+- clear loading state
+- empty state
+- retry state
+- swipe actions where appropriate
+- confirmation before destructive deletion
+- running sessions should show an amber activity indicator
+- failed sessions should show a concise error state
+- stale sessions should not look actively connected
+
+Support iPhone and iPad layouts.
+
+On iPad:
+- sessions in the sidebar
+- selected conversation in detail content
+
+Do not add streaming or full message rendering yet.
+
+Tests:
+
+- session list decoding
+- session creation request
+- session sorting
+- repository error mapping
+- delete confirmation state
+- refresh state
+- selection state
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-sessions
+
+Do not push.
