@@ -1,0 +1,105 @@
+Implement Phase 5 of Archon: resilient live event streaming.
+
+Use the exact OpenCode event route from the API schema.
+
+Likely routes may include:
+
+GET /event
+GET /api/event
+GET /api/session/{sessionID}/event
+
+Confirm the correct route before implementing.
+
+Build a native Server-Sent Events client using URLSession and Swift Concurrency.
+
+Do not add a third-party SSE package unless native URLSession is demonstrably insufficient.
+
+The SSE parser must support:
+
+- event:
+- data:
+- id:
+- retry:
+- comments beginning with :
+- multiline data fields
+- blank-line event termination
+- partial chunks
+- multiple events in one network chunk
+- UTF-8 boundaries
+- reconnect behavior
+- cancellation
+- authentication headers
+
+Create:
+
+- SSEEvent
+- SSEParser
+- OpenCodeEvent
+- OpenCodeEventDecoder
+- OpenCodeEventStreamClient
+- EventStreamState
+- SessionEventReducer
+
+Map incoming events into the active conversation state.
+
+Support events for:
+
+- text deltas
+- reasoning deltas
+- message creation
+- message updates
+- message completion
+- tool start
+- tool progress
+- tool completion
+- shell output
+- permission request
+- question request
+- session status
+- errors
+- interruption
+- reconnect
+- server heartbeat if present
+
+Requirements:
+
+- update the UI incrementally
+- coalesce extremely frequent updates to avoid excessive SwiftUI rendering
+- reconnect with bounded exponential backoff
+- stop reconnecting after authentication failure
+- stop the stream when leaving the session if it is no longer needed
+- reconnect when the app returns to foreground
+- avoid creating duplicate streams
+- deduplicate repeated events using event IDs when available
+- reconcile final state with a REST refresh after disconnect or completion
+
+Show:
+
+- Connected
+- Reconnecting
+- Disconnected
+- Unauthorized
+- Failed
+
+Add extensive tests:
+
+- complete SSE event
+- partial event chunks
+- multiple events
+- multiline data
+- malformed event
+- unknown event
+- reconnect delay
+- cancellation
+- deduplication
+- incremental text merging
+- tool state transitions
+- authentication failure behavior
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-streaming
+
+Do not push.
