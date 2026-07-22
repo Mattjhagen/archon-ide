@@ -1,0 +1,62 @@
+Implement Archon's production brand assets.
+
+Brand direction:
+
+Archon is a premium AI development command center.
+
+The icon should communicate:
+
+- command
+- intelligence
+- structure
+- orchestration
+- remote control
+- precision
+
+Visual concept:
+
+- dark graphite or near-black background
+- central geometric core
+- one or two orbital arcs
+- subtle letter A formed through negative space
+- restrained cyan or blue-violet highlight
+- optional warm amber secondary detail
+- no text
+- no tiny code symbols
+- no robot head
+- no chat bubble
+- no generic terminal prompt
+- no overly detailed spaceship
+- no muddy gradients
+- no excessive glow
+
+The icon must remain recognizable at small iOS sizes.
+
+Use the provided Archon concept image only as directional inspiration. Do not reproduce the mockup literally.
+
+Create:
+
+- AppIcon asset catalog with all required sizes
+- monochrome logo mark for in-app use
+- horizontal Archon wordmark
+- onboarding logo presentation
+- launch screen asset
+- README branding preview
+
+Ensure:
+
+- safe margins follow Apple's icon guidance
+- no transparency in the final App Store icon
+- no rounded corners baked into the source
+- good contrast
+- assets render correctly in light and dark mode where applicable
+
+Update the app to use the new icon and branding.
+
+Build and verify the asset catalog.
+
+Commit on:
+
+feature/archon-brand
+
+Do not push.
