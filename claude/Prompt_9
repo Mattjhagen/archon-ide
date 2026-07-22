@@ -1,0 +1,61 @@
+Implement Phase 8 of Archon: model, provider, and agent selection.
+
+Use the exact OpenCode model, provider, integration, and agent routes.
+
+Build:
+
+- ModelsView
+- ProviderListView
+- AgentPicker
+- ModelPicker
+- ActiveConfigurationCard
+- ProviderStatusView
+
+Support:
+
+- display available providers
+- display connected providers
+- display available models
+- display local versus remote models when identifiable
+- display context limits
+- display pricing metadata when provided
+- display model capabilities
+- display available agents
+- select a model for a new or existing session when supported
+- select an agent
+- show unavailable or misconfigured providers
+- refresh provider state
+
+Never display provider secrets or authentication tokens.
+
+Do not implement provider credential editing unless the API explicitly supports it safely and the security model is clearly understood.
+
+Create:
+
+Provider
+ProviderStatus
+LanguageModel
+ModelCapability
+Agent
+SessionConfiguration
+
+The app should gracefully handle models disappearing, providers going offline, and unknown capabilities.
+
+Add tests:
+
+- provider decoding
+- model decoding
+- agent decoding
+- capability mapping
+- active model selection
+- unavailable model behavior
+- missing pricing metadata
+- unknown provider fields
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-models
+
+Do not push.
