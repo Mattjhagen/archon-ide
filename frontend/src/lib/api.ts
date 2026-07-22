@@ -102,6 +102,7 @@ export const ai = {
     provider?: string;
     maxTokens?: number;
     temperature?: number;
+    apiKey?: string;
   }) =>
     request<ChatResponse>('/ai/chat', 'POST', {
       messages,
@@ -109,6 +110,7 @@ export const ai = {
       provider: options?.provider,
       max_tokens: options?.maxTokens,
       temperature: options?.temperature,
+      api_key: options?.apiKey,
     }),
 };
 

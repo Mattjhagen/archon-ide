@@ -1,5 +1,6 @@
-import { X, Key, Cpu, ExternalLink } from 'lucide-react';
+import { X, Key, Cpu, ExternalLink, Palette, ShieldCheck } from 'lucide-react';
 import type { ProviderInfo } from '../../types';
+import { appearances, type Appearance } from '../../lib/appearance';
 
 interface SettingsModalProps {
   providers: ProviderInfo[];
@@ -7,11 +8,15 @@ interface SettingsModalProps {
   selectedModel: string;
   onProviderChange: (provider: string) => void;
   onModelChange: (model: string) => void;
+  apiKey: string;
+  appearance: Appearance;
+  onAppearanceChange: (appearance: Appearance) => void;
+  onApiKeyChange: (key: string) => void;
   onClose: () => void;
 }
 
 export function SettingsModal({
-  providers, selectedProvider, selectedModel, onProviderChange, onModelChange, onClose,
+  providers, selectedProvider, selectedModel, apiKey, appearance, onProviderChange, onModelChange, onAppearanceChange, onApiKeyChange, onClose,
 }: SettingsModalProps) {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)', animation: 'fadeIn 0.2s var(--ease) both' }}
@@ -35,6 +40,12 @@ export function SettingsModal({
 
         {/* Content */}
         <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-auto">
+          <div>
+            <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}><Palette size={12} /> Appearance</h3>
+            <div className="settings-themes">
+              {appearances.map(item => <button key={item.id} className={appearance === item.id ? 'selected' : ''} onClick={() => onAppearanceChange(item.id)}><span style={{ background: item.accent }} />{item.name}</button>)}
+            </div>
+          </div>
           <div>
             <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Model Provider</h3>
             <div className="space-y-2.5">
@@ -69,16 +80,13 @@ export function SettingsModal({
             </div>
           </div>
 
-          <div className="rounded-xl p-4" style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(139, 92, 246, 0.08)' }}>
+          <div className="rounded-xl p-4" style={{ background: 'var(--accent-subtle)', border: '1px solid var(--border-subtle)' }}>
             <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-secondary)' }}>API Keys</h3>
             <p className="text-[12px] mb-3" style={{ color: 'var(--text-tertiary)' }}>
-              Configure in your <code style={{ color: 'var(--accent-hover)', background: 'var(--bg-overlay)', padding: '1px 5px', borderRadius: 'var(--r-xs)', fontFamily: "'JetBrains Mono', monospace", fontSize: '11px' }}>.env</code> file. Keys are never stored in the browser.
+              Add a key for this session. It is sent only with your model request and is never persisted.
             </p>
-            <div className="space-y-1 text-[11px] rounded-lg p-3" style={{ background: 'var(--bg-void)', color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace", border: '1px solid var(--border-faint)' }}>
-              <div>OPENAI_API_KEY=sk-...</div>
-              <div>ANTHROPIC_API_KEY=sk-ant-...</div>
-              <div>OLLAMA_BASE_URL=http://localhost:11434</div>
-            </div>
+            <input type="password" value={apiKey} onChange={event => onApiKeyChange(event.target.value)} placeholder={selectedProvider === 'anthropic' ? 'sk-ant-…' : 'sk-proj-…'} className="w-full" />
+            <div className="mt-2 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--success)' }}><ShieldCheck size={12} /> Session-only credential</div>
           </div>
         </div>
 

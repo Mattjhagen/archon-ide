@@ -22,6 +22,7 @@ export function EditorArea({ openFiles, activeFile, onSelectFile, onCloseFile, o
   }, [activeFile, onSave]);
 
   const active = openFiles.find(f => f.path === activeFile);
+  const editorTheme = document.documentElement.dataset.appearance === 'paper' ? 'vs' : 'vs-dark';
   const lang: Record<string, string> = { typescript: 'typescript', javascript: 'javascript', python: 'python', rust: 'rust', go: 'go', html: 'html', css: 'css', json: 'json', yaml: 'yaml', markdown: 'markdown', shell: 'shell' };
 
   if (!openFiles.length) {
@@ -78,7 +79,7 @@ export function EditorArea({ openFiles, activeFile, onSelectFile, onCloseFile, o
             height="100%"
             language={lang[active.language] ?? 'plaintext'}
             value={active.content}
-            theme="vs-dark"
+            theme={editorTheme}
             onChange={v => { if (v !== undefined) onContentChange(active.path, v); }}
             onMount={handleMount}
             options={{

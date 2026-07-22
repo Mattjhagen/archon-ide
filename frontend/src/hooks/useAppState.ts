@@ -34,6 +34,7 @@ export interface AppState {
   aiLoading: boolean;
   selectedProvider: string;
   selectedModel: string;
+  apiKey: string;
   providers: ProviderInfo[];
 
   // Git
@@ -71,6 +72,7 @@ export function useAppState() {
     aiLoading: false,
     selectedProvider: 'mock',
     selectedModel: 'mock-responses',
+    apiKey: '',
     providers: [],
     gitStatus: null,
     gitLog: [],
@@ -219,6 +221,7 @@ export function useAppState() {
       const response = await ai.chat(messages, {
         provider: state.selectedProvider,
         model: state.selectedModel,
+        apiKey: state.apiKey,
       });
 
       update({
@@ -235,7 +238,7 @@ export function useAppState() {
         aiLoading: false,
       });
     }
-  }, [state.chatMessages, state.openFiles, state.activeFile, state.selectedProvider, state.selectedModel, update]);
+  }, [state.chatMessages, state.openFiles, state.activeFile, state.selectedProvider, state.selectedModel, state.apiKey, update]);
 
   // Diff actions
   const showDiffPreview = useCallback(async (filePath: string, newContent: string) => {
