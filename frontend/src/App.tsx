@@ -8,10 +8,23 @@ import { StatusBar } from './components/StatusBar/StatusBar';
 import { WelcomeScreen } from './components/Layout/WelcomeScreen';
 import { DiffPreviewPanel } from './components/DiffPreview/DiffPreviewPanel';
 import { SettingsModal } from './components/Settings/SettingsModal';
+import { SetupScreen, type SetupResult } from './components/Setup/SetupScreen';
+import { applyAppearance, savedAppearance, type Appearance } from './lib/appearance';
 
 function App() {
   const app = useAppState();
   const [showSettings, setShowSettings] = useState(false);
+  const [appearance, setAppearance] = useState<Appearance>(savedAppearance);
+  const [setupComplete, setSetupComplete] = useState(() => localStorage.getItem('archon.setupComplete') === 'true');
+
+  useEffect(() => applyAppearance(appearance), [appearance]);
+
+  const completeSetup = useCallback((result: SetupResult) => {
+    setAppearance(result.appearance);
+    app.update({ selectedProvider: result.provider, selectedModel: result.model, apiKey: result.apiKey });
+    localStorage.setItem('archon.setupComplete', 'true');
+    setSetupComplete(true);
+  }, [app]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -112,6 +125,10 @@ function App() {
     document.addEventListener('mouseup', onUp);
   }, [app]);
 
+  if (!setupComplete) {
+    return <SetupScreen appearance={appearance} onAppearanceChange={setAppearance} onComplete={completeSetup} />;
+  }
+
   if (!app.state.projectPath) {
     return (
       <div
@@ -120,6 +137,20 @@ function App() {
       >
         <WelcomeScreen onOpenFolder={handleFolderOpen} onOpenPath={handlePathInput} />
         <StatusBar state={app.state} onOpenSettings={() => setShowSettings(true)} />
+        {showSettings && (
+          <SettingsModal
+            providers={app.state.providers}
+            selectedProvider={app.state.selectedProvider}
+            selectedModel={app.state.selectedModel}
+            apiKey={app.state.apiKey}
+            appearance={appearance}
+            onAppearanceChange={setAppearance}
+            onApiKeyChange={(apiKey) => app.update({ apiKey })}
+            onProviderChange={(p) => app.update({ selectedProvider: p })}
+            onModelChange={(m) => app.update({ selectedModel: m })}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
       </div>
     );
   }
@@ -223,6 +254,10 @@ function App() {
           providers={app.state.providers}
           selectedProvider={app.state.selectedProvider}
           selectedModel={app.state.selectedModel}
+          apiKey={app.state.apiKey}
+          appearance={appearance}
+          onAppearanceChange={setAppearance}
+          onApiKeyChange={(apiKey) => app.update({ apiKey })}
           onProviderChange={(p) => app.update({ selectedProvider: p })}
           onModelChange={(m) => app.update({ selectedModel: m })}
           onClose={() => setShowSettings(false)}

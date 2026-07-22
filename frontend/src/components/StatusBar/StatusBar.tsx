@@ -13,7 +13,7 @@ interface StatusBarProps {
 export function StatusBar({ state, onOpenSettings, onToggleTerminal, onToggleSidebar, onToggleAi }: StatusBarProps) {
   return (
     <div
-      className="h-[26px] text-white flex items-center px-2 text-[11px] flex-shrink-0 select-none"
+      className="status-bar h-[26px] text-white flex items-center px-2 text-[11px] flex-shrink-0 select-none"
       style={{
         background: 'linear-gradient(180deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 -1px 4px rgba(0,0,0,0.3)',

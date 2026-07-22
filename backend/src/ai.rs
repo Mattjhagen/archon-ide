@@ -10,6 +10,7 @@ pub struct ChatReq {
     pub max_tokens: Option<u32>,
     pub temperature: Option<f32>,
     pub _stream: Option<bool>,
+    pub api_key: Option<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -122,8 +123,8 @@ pub async fn chat(
     let temperature = body.temperature.unwrap_or(0.7);
 
     match provider {
-        "openai" => chat_openai(&body.messages, model, max_tokens, temperature).await,
-        "anthropic" => chat_anthropic(&body.messages, model, max_tokens, temperature).await,
+        "openai" => chat_openai(&body.messages, model, max_tokens, temperature, body.api_key.as_deref()).await,
+        "anthropic" => chat_anthropic(&body.messages, model, max_tokens, temperature, body.api_key.as_deref()).await,
         "ollama" => chat_ollama(&body.messages, model, max_tokens, temperature).await,
         _ => chat_mock(&body.messages, model).await,
     }
@@ -134,9 +135,10 @@ async fn chat_openai(
     model: &str,
     max_tokens: u32,
     temperature: f32,
+    request_key: Option<&str>,
 ) -> HttpResponse {
-    let api_key = match std::env::var("OPENAI_API_KEY") {
-        Ok(k) if !k.is_empty() => k,
+    let api_key = match request_key.map(str::to_owned).or_else(|| std::env::var("OPENAI_API_KEY").ok()) {
+        Some(k) if !k.is_empty() => k,
         _ => return chat_mock(messages, model).await,
     };
 
@@ -197,9 +199,10 @@ async fn chat_anthropic(
     model: &str,
     max_tokens: u32,
     temperature: f32,
+    request_key: Option<&str>,
 ) -> HttpResponse {
-    let api_key = match std::env::var("ANTHROPIC_API_KEY") {
-        Ok(k) if !k.is_empty() => k,
+    let api_key = match request_key.map(str::to_owned).or_else(|| std::env::var("ANTHROPIC_API_KEY").ok()) {
+        Some(k) if !k.is_empty() => k,
         _ => return chat_mock(messages, model).await,
     };
 
