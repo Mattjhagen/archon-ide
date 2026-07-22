@@ -1,0 +1,103 @@
+Implement Phase 2 of Archon: secure server onboarding and connection testing.
+
+The app must allow the user to configure an OpenCode server without hardcoded credentials.
+
+Build an onboarding flow with these screens:
+
+1. Welcome
+2. Server address
+3. Credentials
+4. Connection test
+5. Connected confirmation
+
+Fields:
+
+Server URL:
+Example:
+http://100.103.3.35:4096
+
+Username:
+Default suggestion:
+opencode
+
+Password:
+Entered securely by the user.
+
+Requirements:
+
+- store the password in Keychain
+- store non-sensitive server configuration using AppStorage or a small persistence service
+- never store the password in UserDefaults
+- never log Authorization headers
+- never display the password after saving
+- support changing and deleting credentials
+- normalize URLs
+- reject malformed URLs
+- clearly explain that HTTP should only be used over a trusted private network such as Tailscale
+- allow HTTPS servers
+- provide a visible connection status
+- provide useful errors for:
+  - unreachable host
+  - timeout
+  - DNS failure
+  - 401 unauthorized
+  - 403 forbidden
+  - invalid response
+  - incompatible OpenCode version
+
+Implement Basic Authentication correctly.
+
+The Authorization header must be generated from:
+
+username:password
+
+Base64 encode the complete UTF-8 credential string.
+
+Do not manually concatenate authentication into URLs.
+
+Use the OpenCode health endpoint discovered in API_NOTES.md.
+
+Likely candidates include:
+
+GET /global/health
+GET /api/health
+
+Use the schema and actual server behavior to select the correct route.
+
+Decode:
+
+- healthy status
+- OpenCode version
+- server response timing if measurable
+
+Create:
+
+- KeychainCredentialStore
+- ServerConfigurationStore
+- OpenCodeRequestBuilder
+- URLSessionOpenCodeClient
+- ConnectionTestService
+- OnboardingViewModel
+- onboarding views
+- settings connection editor
+
+Add tests for:
+
+- Basic Authentication header generation
+- password persistence
+- credential deletion
+- URL normalization
+- URL rejection
+- health response decoding
+- 401 handling
+- timeout handling
+
+Use URLProtocol mocks for networking tests.
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-onboarding
+
+Do not push.
