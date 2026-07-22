@@ -1,0 +1,19 @@
+{
+  "name": "archon-ide",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first AI coding assistant",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && cargo run",
+    "build": "cd frontend && npm run build",
+    "build:backend": "cd backend && cargo build --release",
+    "test": "cd frontend && npm run test",
+    "test:backend": "cd backend && cargo test",
+    "lint": "cd frontend && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
