@@ -1,0 +1,86 @@
+Implement Phase 6 of Archon: OpenCode permission requests and interactive questions.
+
+Use the exact API routes from the OpenAPI schema.
+
+Support permission requests such as:
+
+- shell command execution
+- file modification
+- file creation
+- file deletion
+- external network access
+- potentially destructive operations
+- other OpenCode-defined permissions
+
+Support question requests such as:
+
+- single choice
+- multiple choice
+- free text
+- confirmation
+- structured options
+
+Create application models:
+
+PermissionRequest
+PermissionType
+PermissionDecision
+QuestionRequest
+QuestionType
+QuestionOption
+QuestionResponse
+
+Build:
+
+- PendingActionsCenter
+- PermissionRequestCard
+- PermissionDetailSheet
+- QuestionRequestCard
+- QuestionResponseSheet
+- PendingActionBadge
+
+Permission actions:
+
+- allow once
+- allow for session, only if supported by the API
+- deny
+- inspect context before deciding
+
+Question actions:
+
+- select option
+- select multiple options when allowed
+- enter text
+- submit
+- reject or dismiss when supported
+
+Safety requirements:
+
+- destructive permissions must be visually clear
+- show the command, path, or affected resource
+- do not hide important command arguments
+- do not automatically approve permissions
+- do not create a global auto-approve mode
+- preserve pending requests across view transitions
+- prevent duplicate replies
+- show failure if the reply was not accepted by the server
+
+Update the live session through SSE after actions.
+
+Add tests:
+
+- permission decoding
+- question decoding
+- reply encoding
+- duplicate prevention
+- destructive classification
+- pending badge count
+- successful and failed reply state
+
+Run build and tests.
+
+Commit on:
+
+feature/archon-actions
+
+Do not push.
