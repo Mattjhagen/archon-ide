@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-import { X, Save } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { OpenFile } from '../../types';
 
 interface EditorAreaProps {
@@ -13,52 +13,23 @@ interface EditorAreaProps {
   onShowDiff: (path: string, content: string) => void;
 }
 
-export function EditorArea({
-  openFiles,
-  activeFile,
-  onSelectFile,
-  onCloseFile,
-  onContentChange,
-  onSave,
-  onShowDiff,
-}: EditorAreaProps) {
+export function EditorArea({ openFiles, activeFile, onSelectFile, onCloseFile, onContentChange, onSave }: EditorAreaProps) {
   const editorRef = useRef<any>(null);
 
-  const handleEditorMount = useCallback((editor: any) => {
+  const handleMount = useCallback((editor: any) => {
     editorRef.current = editor;
-    // Add save shortcut to Monaco
-    editor.addAction({
-      id: 'save-file',
-      label: 'Save File',
-      keybindings: [2048 | 49], // Ctrl+S
-      run: () => {
-        if (activeFile) onSave(activeFile);
-      },
-    });
+    editor.addAction({ id: 'save', label: 'Save', keybindings: [2048 | 49], run: () => { if (activeFile) onSave(activeFile); } });
   }, [activeFile, onSave]);
 
-  const activeFileData = openFiles.find(f => f.path === activeFile);
-  const languageMap: Record<string, string> = {
-    typescript: 'typescript',
-    javascript: 'javascript',
-    python: 'python',
-    rust: 'rust',
-    go: 'go',
-    html: 'html',
-    css: 'css',
-    json: 'json',
-    yaml: 'yaml',
-    markdown: 'markdown',
-    shell: 'shell',
-    dockerfile: 'dockerfile',
-  };
+  const active = openFiles.find(f => f.path === activeFile);
+  const lang: Record<string, string> = { typescript: 'typescript', javascript: 'javascript', python: 'python', rust: 'rust', go: 'go', html: 'html', css: 'css', json: 'json', yaml: 'yaml', markdown: 'markdown', shell: 'shell' };
 
-  if (openFiles.length === 0) {
+  if (!openFiles.length) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-zinc-950 text-zinc-500">
+      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg-void)' }}>
         <div className="text-center">
-          <p className="text-sm">No files open</p>
-          <p className="text-xs mt-1">Open a file from the sidebar</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No files open</p>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Open a file from the sidebar</p>
         </div>
       </div>
     );
@@ -66,71 +37,77 @@ export function EditorArea({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Tab bar */}
-      <div className="flex bg-zinc-900 border-b border-zinc-800 overflow-x-auto flex-shrink-0">
-        {openFiles.map(file => {
-          const name = file.path.split('/').pop() ?? file.path;
-          const isActive = file.path === activeFile;
+      {/* Tabs */}
+      <div className="flex flex-shrink-0 overflow-x-auto" style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border-faint)' }}>
+        {openFiles.map(f => {
+          const name = f.path.split('/').pop() ?? f.path;
+          const active_ = f.path === activeFile;
           return (
             <div
-              key={file.path}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer border-r border-zinc-800 min-w-0 group ${
-                isActive
-                  ? 'bg-zinc-950 text-white border-t-2 border-t-blue-500'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-              }`}
-              onClick={() => onSelectFile(file.path)}
+              key={f.path}
+              className="flex items-center gap-1.5 px-3 py-2 text-[11px] cursor-pointer group min-w-0 select-none"
+              style={{
+                background: active_ ? 'var(--bg-void)' : 'transparent',
+                color: active_ ? 'var(--text-primary)' : 'var(--text-muted)',
+                borderBottom: active_ ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                borderRight: '1px solid var(--border-faint)',
+                transition: 'all var(--t-fast)',
+              }}
+              onClick={() => onSelectFile(f.path)}
+              onMouseEnter={e => { if (!active_) { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
+              onMouseLeave={e => { if (!active_) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; } }}
             >
-              {file.modified && (
-                <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" />
-              )}
+              {f.modified && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--warning)' }} />}
               <span className="truncate max-w-[120px]">{name}</span>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCloseFile(file.path);
-                }}
-                className="ml-1 opacity-0 group-hover:opacity-100 hover:text-white p-0.5"
-              >
-                <X size={12} />
-              </button>
+                onClick={ev => { ev.stopPropagation(); onCloseFile(f.path); }}
+                className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100"
+                style={{ color: 'var(--text-muted)', transition: 'all var(--t-fast)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              ><X size={11} /></button>
             </div>
           );
         })}
       </div>
-
       {/* Editor */}
-      {activeFileData && (
-        <div className="flex-1 min-h-0">
+      {active && (
+        <div className="flex-1 min-h-0" style={{ background: 'var(--bg-void)' }}>
           <Editor
-            key={activeFileData.path}
+            key={active.path}
             height="100%"
-            language={languageMap[activeFileData.language] ?? 'plaintext'}
-            value={activeFileData.content}
+            language={lang[active.language] ?? 'plaintext'}
+            value={active.content}
             theme="vs-dark"
-            onChange={(value) => {
-              if (value !== undefined) {
-                onContentChange(activeFileData.path, value);
-              }
-            }}
-            onMount={handleEditorMount}
+            onChange={v => { if (v !== undefined) onContentChange(active.path, v); }}
+            onMount={handleMount}
             options={{
-              fontSize: 14,
-              fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-              minimap: { enabled: true, maxColumn: 80 },
+              fontSize: 13.5,
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              fontLigatures: true,
+              minimap: { enabled: true, maxColumn: 80, scale: 1 },
               scrollBeyondLastLine: false,
-              renderLineHighlight: 'gutter',
+              renderLineHighlight: 'all',
               bracketPairColorization: { enabled: true },
-              guides: { bracketPairs: true },
-              padding: { top: 8 },
+              guides: { bracketPairs: true, indentation: true },
+              padding: { top: 16, bottom: 16 },
               smoothScrolling: true,
               cursorBlinking: 'smooth',
               cursorSmoothCaretAnimation: 'on',
+              cursorStyle: 'line',
+              cursorWidth: 2,
               wordWrap: 'off',
               automaticLayout: true,
               tabSize: 2,
               formatOnPaste: true,
               suggestOnTriggerCharacters: true,
+              lineHeight: 1.7,
+              letterSpacing: 0.3,
+              renderWhitespace: 'selection',
+              overviewRulerBorder: false,
+              overviewRulerLanes: 0,
+              hideCursorInOverviewRuler: true,
+              scrollbar: { verticalScrollbarSize: 5, horizontalScrollbarSize: 5, useShadows: false },
             }}
           />
         </div>

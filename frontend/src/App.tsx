@@ -13,7 +13,6 @@ function App() {
   const app = useAppState();
   const [showSettings, setShowSettings] = useState(false);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
@@ -23,7 +22,6 @@ function App() {
       }
       if (mod && e.key === 'Shift+P') {
         e.preventDefault();
-        // Command palette placeholder
       }
       if (mod && e.key === '`') {
         e.preventDefault();
@@ -51,8 +49,6 @@ function App() {
       const files = input.files;
       if (files && files.length > 0) {
         const path = (files[0] as any).path ?? files[0].webkitRelativePath.split('/')[0];
-        // For web: use the first file's path to infer project root
-        // For electron/tauri: would use the native path
         const projectPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : path;
         app.openProject(projectPath);
       }
@@ -65,7 +61,6 @@ function App() {
     if (path) app.openProject(path);
   }, [app]);
 
-  // Sidebar resize
   const handleSidebarResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -83,7 +78,6 @@ function App() {
     document.addEventListener('mouseup', onUp);
   }, [app]);
 
-  // AI panel resize
   const handleAiResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -101,7 +95,6 @@ function App() {
     document.addEventListener('mouseup', onUp);
   }, [app]);
 
-  // Terminal resize
   const handleTerminalResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const startY = e.clientY;
@@ -121,18 +114,21 @@ function App() {
 
   if (!app.state.projectPath) {
     return (
-      <div className="h-screen w-screen bg-zinc-950 text-zinc-200 flex flex-col">
-        <WelcomeScreen
-          onOpenFolder={handleFolderOpen}
-          onOpenPath={handlePathInput}
-        />
+      <div
+        className="h-screen w-screen flex flex-col"
+        style={{ background: 'var(--bg-void)', color: 'var(--text-primary)' }}
+      >
+        <WelcomeScreen onOpenFolder={handleFolderOpen} onOpenPath={handlePathInput} />
         <StatusBar state={app.state} onOpenSettings={() => setShowSettings(true)} />
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen bg-zinc-950 text-zinc-200 flex flex-col overflow-hidden">
+    <div
+      className="h-screen w-screen flex flex-col overflow-hidden"
+      style={{ background: 'var(--bg-void)', color: 'var(--text-primary)' }}
+    >
       {/* Main content area */}
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
@@ -145,10 +141,7 @@ function App() {
               onUpdate={app.update}
               width={app.state.sidebarWidth}
             />
-            <div
-              className="w-px bg-zinc-700 cursor-col-resize hover:bg-blue-500 transition-colors flex-shrink-0"
-              onMouseDown={handleSidebarResize}
-            />
+            <div className="resize-col" onMouseDown={handleSidebarResize} />
           </>
         )}
 
@@ -178,10 +171,7 @@ function App() {
 
           {/* Terminal resize handle */}
           {app.state.terminalVisible && (
-            <div
-              className="h-1 bg-zinc-700 cursor-row-resize hover:bg-blue-500 transition-colors flex-shrink-0"
-              onMouseDown={handleTerminalResize}
-            />
+            <div className="resize-row" onMouseDown={handleTerminalResize} />
           )}
 
           {/* Terminal */}
@@ -198,10 +188,7 @@ function App() {
 
         {/* AI panel resize handle */}
         {app.state.aiPanelVisible && (
-          <div
-            className="w-px bg-zinc-700 cursor-col-resize hover:bg-blue-500 transition-colors flex-shrink-0"
-            onMouseDown={handleAiResize}
-          />
+          <div className="resize-col" onMouseDown={handleAiResize} />
         )}
 
         {/* AI Panel */}
