@@ -1,0 +1,114 @@
+Continue work on Archon using the architecture and implementation plan already documented in the repository.
+
+Implement Phase 1: application foundation.
+
+The result must be a compiling native SwiftUI app for iPhone and iPad.
+
+Requirements:
+
+1. Create or repair the Xcode project.
+2. Set the product name to Archon.
+3. Use a clean bundle identifier placeholder such as:
+
+com.pacmacmobile.archon
+
+4. Target iOS 18 and iPadOS 18.
+5. Use SwiftUI App lifecycle.
+6. Establish the feature-based folder structure documented in ARCHITECTURE.md.
+7. Create an app-wide dependency container.
+8. Create environment-aware services for previews and tests.
+9. Create a reusable design system.
+10. Add light and dark appearance support, while making dark mode the primary visual direction.
+
+Create initial design tokens for:
+
+- background
+- elevated background
+- card background
+- primary text
+- secondary text
+- cyan accent
+- amber activity
+- green success
+- red failure
+- borders
+- subtle glow or shadow
+
+Do not overuse gradients or effects.
+
+Create reusable components:
+
+- ArchonButton
+- ArchonCard
+- ArchonStatusBadge
+- ArchonEmptyState
+- ArchonLoadingView
+- ArchonErrorView
+- ArchonTextField
+- ArchonSecureField
+- ArchonToolbar
+- ServerStatusIndicator
+
+Create the main adaptive navigation:
+
+iPhone:
+- TabView
+
+iPad:
+- NavigationSplitView
+
+Primary destinations:
+
+- Command
+- Sessions
+- Projects
+- Activity
+- Settings
+
+Create placeholder feature views for each destination using the design system.
+
+Create application models for:
+
+- ServerConfiguration
+- ServerConnectionState
+- ServerHealth
+- AppRoute
+- AppError
+
+Create protocols for:
+
+- OpenCodeAPIClientProtocol
+- CredentialStoreProtocol
+- ConnectionServiceProtocol
+- EventStreamClientProtocol
+
+Create mock implementations for previews and tests.
+
+Create unit tests for:
+
+- dependency initialization
+- server URL validation
+- navigation state
+- basic model decoding
+
+Run the full build and tests.
+
+Use xcodebuild from the command line.
+
+Do not claim success unless the command actually succeeds.
+
+At the end provide:
+
+- summary
+- files created
+- architecture decisions
+- build command
+- build result
+- test result
+- remaining issues
+
+Commit the work to a new branch:
+
+feature/archon-foundation
+
+Do not push unless explicitly asked.
