@@ -190,34 +190,35 @@ pub async fn cancel_task(
 
 /// GET /api/agent/memory?workspace_path=<path>
 ///
-/// Return the workspace context memory entries for the current user's open project.
-/// Scoped to the authenticated user through the task ownership chain.
+/// Return the workspace context memory entries scoped to the calling user.
+/// Returns only entries the authenticated user wrote — never another user's.
 pub async fn get_memory(
     req: HttpRequest,
     state: web::Data<AppState>,
     query: web::Query<WorkspacePathQuery>,
 ) -> HttpResponse {
-    if auth_user(&req).is_none() {
+    let Some(user) = auth_user(&req) else {
         return HttpResponse::Unauthorized()
             .json(serde_json::json!({"error": "authentication required"}));
-    }
-    let entries = state.agent_memory.get_all(&query.workspace_path).await;
+    };
+    let entries = state.agent_memory.get_all(&user.id, &query.workspace_path).await;
     HttpResponse::Ok().json(entries)
 }
 
 /// DELETE /api/agent/memory?workspace_path=<path>
 ///
-/// Clear all memory entries for a workspace.
+/// Clear memory entries for the calling user's workspace.
+/// Only affects the authenticated user's own entries.
 pub async fn clear_memory(
     req: HttpRequest,
     state: web::Data<AppState>,
     query: web::Query<WorkspacePathQuery>,
 ) -> HttpResponse {
-    if auth_user(&req).is_none() {
+    let Some(user) = auth_user(&req) else {
         return HttpResponse::Unauthorized()
             .json(serde_json::json!({"error": "authentication required"}));
-    }
-    state.agent_memory.clear(&query.workspace_path).await;
+    };
+    state.agent_memory.clear(&user.id, &query.workspace_path).await;
     HttpResponse::Ok().json(serde_json::json!({"ok": true}))
 }
 

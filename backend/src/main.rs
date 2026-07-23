@@ -29,11 +29,21 @@ async fn main() -> std::io::Result<()> {
         .parse()
         .unwrap_or(3847);
 
+    // Persist workspace memory across server restarts.
+    // Override the default path with AGENT_MEMORY_PATH if needed.
+    let memory_path = std::env::var("AGENT_MEMORY_PATH")
+        .ok()
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from("./data/agent_memory.json"));
+    if let Some(parent) = memory_path.parent() {
+        std::fs::create_dir_all(parent).ok();
+    }
+
     let state = web::Data::new(AppState {
         open_project: Arc::new(RwLock::new(None)),
         terminal_sessions: terminal::TerminalManager::new(),
         agent_tasks: agent::repository::TaskStore::new(),
-        agent_memory: agent::memory::MemoryStore::new(),
+        agent_memory: agent::memory::MemoryStore::new(Some(memory_path)),
     });
 
     let dist = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))

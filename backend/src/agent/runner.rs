@@ -116,8 +116,8 @@ async fn run_task(
     emit(&store, task_id, EventKind::StatusChanged, "Planning started".into(), serde_json::json!({"status": "planning"})).await;
 
     // Inject cross-session workspace memory into the system prompt
-    let memory_block = memory.build_context_block(&workspace_path).await;
-    let context_entry_count = memory.get_context(&workspace_path).await.len();
+    let memory_block = memory.build_context_block(&user_id, &workspace_path).await;
+    let context_entry_count = memory.get_context(&user_id, &workspace_path).await.len();
     if context_entry_count > 0 {
         emit(
             &store,
@@ -350,7 +350,7 @@ async fn run_task(
                                 // Write task summary to workspace memory so future tasks can
                                 // benefit from what was learned this session.
                                 memory
-                                    .record_task_summary(&workspace_path, summary.clone(), task_id)
+                                    .record_task_summary(&user_id, &workspace_path, summary.clone(), task_id)
                                     .await;
 
                                 emit(
@@ -411,13 +411,13 @@ async fn run_task(
                                         // Record file writes to workspace memory
                                         if tool_name == "write_file" {
                                             if let Some(path) = action.args.get("path").and_then(|v| v.as_str()) {
-                                                memory.record_file_change(&workspace_path, path, task_id).await;
+                                                memory.record_file_change(&user_id, &workspace_path, path, task_id).await;
                                             }
                                         }
                                         // Persist memory_note observations
                                         if tool_name == "memory_note" {
                                             if let Some(note) = action.args.get("note").and_then(|v| v.as_str()) {
-                                                memory.record_observation(&workspace_path, note.to_string(), task_id).await;
+                                                memory.record_observation(&user_id, &workspace_path, note.to_string(), task_id).await;
                                             }
                                         }
                                         (format!("{tool_name} succeeded"), content.clone(), true)
