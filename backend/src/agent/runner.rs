@@ -40,6 +40,9 @@ const MAX_FILE_READ_BYTES: usize = 51_200; // 50 KB
 /// Maximum bytes stored in an event's `metadata.preview` field.
 const MAX_METADATA_PREVIEW_BYTES: usize = 4_096;
 
+/// Maximum bytes returned from a single `run_tests` call.
+const MAX_TEST_OUTPUT_BYTES: usize = 8_192; // 8 KB
+
 /// Actions the model is permitted to request.
 const ALLOWED_ACTIONS: &[&str] = &[
     "list_tree",
@@ -48,6 +51,8 @@ const ALLOWED_ACTIONS: &[&str] = &[
     "git_status",
     "git_diff",
     "write_file",
+    "run_tests",
+    "memory_note",
     "done",
     "blocked",
 ];
@@ -409,6 +414,12 @@ async fn run_task(
                                                 memory.record_file_change(&workspace_path, path, task_id).await;
                                             }
                                         }
+                                        // Persist memory_note observations
+                                        if tool_name == "memory_note" {
+                                            if let Some(note) = action.args.get("note").and_then(|v| v.as_str()) {
+                                                memory.record_observation(&workspace_path, note.to_string(), task_id).await;
+                                            }
+                                        }
                                         (format!("{tool_name} succeeded"), content.clone(), true)
                                     }
                                     Err(e) => {
@@ -606,6 +617,58 @@ async fn execute_tool(
             ))
         }
 
+        "run_tests" => {
+            let root = &policy.workspace_root;
+            let (program, args): (&str, &[&str]) = if root.join("Cargo.toml").exists() {
+                ("cargo", &["test"])
+            } else if root.join("package.json").exists() {
+                ("npm", &["test"])
+            } else if root.join("pytest.ini").exists()
+                || root.join("setup.py").exists()
+                || root.join("pyproject.toml").exists()
+            {
+                ("pytest", &[])
+            } else if root.join("go.mod").exists() {
+                ("go", &["test", "./..."])
+            } else {
+                return Err(
+                    "run_tests: no supported test runner detected \
+                     (looked for Cargo.toml, package.json, pytest.ini/setup.py/pyproject.toml, go.mod)"
+                        .into(),
+                );
+            };
+
+            let output = tokio::process::Command::new(program)
+                .args(args)
+                .current_dir(root)
+                .output()
+                .await
+                .map_err(|e| format!("run_tests: failed to spawn {program}: {e}"))?;
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let combined = format!("--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}");
+            let truncated = if combined.len() > MAX_TEST_OUTPUT_BYTES {
+                format!(
+                    "{}… [truncated {} bytes]",
+                    &combined[..MAX_TEST_OUTPUT_BYTES],
+                    combined.len() - MAX_TEST_OUTPUT_BYTES
+                )
+            } else {
+                combined
+            };
+            let exit_label = if output.status.success() { "passed" } else { "failed" };
+            Ok(format!(
+                "Tests {exit_label} (exit code {:?}):\n{truncated}",
+                output.status.code()
+            ))
+        }
+
+        "memory_note" => {
+            // Actual persistence happens in the caller once execute_tool returns Ok.
+            Ok("Note recorded".to_string())
+        }
+
         _ => Err(format!("unknown tool: {tool}")),
     }
 }
@@ -715,14 +778,16 @@ Respond with EXACTLY ONE JSON object — no markdown fences, no prose, just the 
 }}
 
 Available actions:
-- list_tree:  {{"root": "."}}                          List directory tree (max depth 3)
-- read_file:  {{"path": "relative/path"}}              Read a file (max 50 KB, relative paths only)
-- search:     {{"root": ".", "query": "text"}}         Search for text across files
-- git_status: {{}}                                     Show git status
-- git_diff:   {{}}                                     Show git diff summary
-- write_file: {{"path": "relative/path", "content": "…"}}  Write or overwrite a file
-- done:       {{"summary": "…", "evidence": "…"}}      Mark task complete (requires verification evidence)
-- blocked:    {{"reason": "…"}}                        Report genuine external blocker
+- list_tree:   {{"root": "."}}                          List directory tree (max depth 3)
+- read_file:   {{"path": "relative/path"}}              Read a file (max 50 KB, relative paths only)
+- search:      {{"root": ".", "query": "text"}}         Search for text across files
+- git_status:  {{}}                                     Show git status
+- git_diff:    {{}}                                     Show git diff summary
+- write_file:  {{"path": "relative/path", "content": "…"}}  Write or overwrite a file
+- run_tests:   {{}}                                     Run the project's test suite and return results
+- memory_note: {{"note": "…"}}                         Save a codebase observation for future tasks
+- done:        {{"summary": "…", "evidence": "…"}}      Mark task complete (requires verification evidence)
+- blocked:     {{"reason": "…"}}                        Report genuine external blocker
 
 Rules:
 - All paths MUST be relative (no leading /).
