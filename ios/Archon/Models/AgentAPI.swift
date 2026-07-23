@@ -59,4 +59,27 @@ struct APIError: Codable, LocalizedError {
         }
         return message
     }
+    
+    enum CodingKeys: String, CodingKey {
+        case message
+        case error
+        case code
+    }
+    
+    init(message: String, code: Int?) {
+        self.message = message
+        self.code = code
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let msg = try container.decodeIfPresent(String.self, forKey: .message) {
+            self.message = msg
+        } else if let err = try container.decodeIfPresent(String.self, forKey: .error) {
+            self.message = err
+        } else {
+            self.message = "Unknown error"
+        }
+        self.code = try container.decodeIfPresent(Int.self, forKey: .code)
+    }
 }
