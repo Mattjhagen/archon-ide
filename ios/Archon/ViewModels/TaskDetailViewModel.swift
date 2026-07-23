@@ -1,6 +1,16 @@
 import Foundation
 import SwiftUI
 
+protocol SleeperProtocol {
+    func sleep(nanoseconds: UInt64) async throws
+}
+
+struct DefaultSleeper: SleeperProtocol {
+    func sleep(nanoseconds: UInt64) async throws {
+        try await Task.sleep(nanoseconds: nanoseconds)
+    }
+}
+
 @MainActor
 class TaskDetailViewModel: ObservableObject {
     @Published var task: ArchonTask?
@@ -11,13 +21,15 @@ class TaskDetailViewModel: ObservableObject {
     private let apiClient: APIClientProtocol
     private let taskId: String
     private let pollingInterval: TimeInterval
+    private let sleeper: SleeperProtocol
     private var pollingTask: Task<Void, Never>?
     private var processedEventIds = Set<String>()
     
-    init(taskId: String, apiClient: APIClientProtocol = AuthenticatedAPIClient(), pollingInterval: TimeInterval = 3.0) {
+    init(taskId: String, apiClient: APIClientProtocol = AuthenticatedAPIClient(), pollingInterval: TimeInterval = 3.0, sleeper: SleeperProtocol = DefaultSleeper()) {
         self.taskId = taskId
         self.apiClient = apiClient
         self.pollingInterval = pollingInterval
+        self.sleeper = sleeper
     }
     
     func startPolling() {
@@ -49,7 +61,7 @@ class TaskDetailViewModel: ObservableObject {
                 }
                 
                 let sleepDuration = success ? pollingInterval : min(pollingInterval * pow(2.0, Double(consecutiveFailures)), 30.0)
-                try? await Task.sleep(nanoseconds: UInt64(sleepDuration * 1_000_000_000))
+                try? await sleeper.sleep(nanoseconds: UInt64(sleepDuration * 1_000_000_000))
             }
             self.isLoading = false
             self.pollingTask = nil
