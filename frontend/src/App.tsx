@@ -9,13 +9,17 @@ import { WelcomeScreen } from './components/Layout/WelcomeScreen';
 import { DiffPreviewPanel } from './components/DiffPreview/DiffPreviewPanel';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { SetupScreen, type SetupResult } from './components/Setup/SetupScreen';
+import { TaskPanel } from './components/Agent/TaskPanel';
 import { applyAppearance, savedAppearance, type Appearance } from './lib/appearance';
+
+type AiPanelMode = 'chat' | 'tasks';
 
 function App() {
   const app = useAppState();
   const [showSettings, setShowSettings] = useState(false);
   const [appearance, setAppearance] = useState<Appearance>(savedAppearance);
   const [setupComplete, setSetupComplete] = useState(() => localStorage.getItem('archon.setupComplete') === 'true');
+  const [aiPanelMode, setAiPanelMode] = useState<AiPanelMode>('chat');
 
   useEffect(() => applyAppearance(appearance), [appearance]);
 
@@ -222,25 +226,69 @@ function App() {
           <div className="resize-col" onMouseDown={handleAiResize} />
         )}
 
-        {/* AI Panel */}
+        {/* AI Panel — Chat or Tasks */}
         {app.state.aiPanelVisible && (
-          <AiChatPanel
-            messages={app.state.chatMessages}
-            loading={app.state.aiLoading}
-            onSend={app.sendChatMessage}
-            providers={app.state.providers}
-            selectedProvider={app.state.selectedProvider}
-            selectedModel={app.state.selectedModel}
-            onProviderChange={(p) => app.update({ selectedProvider: p })}
-            onModelChange={(m) => app.update({ selectedModel: m })}
-            width={app.state.aiPanelWidth}
-            activeFilePath={app.state.activeFile}
-            reasoningEffort={app.state.reasoningEffort}
-            creditsConsumed={app.state.creditsConsumed}
-            onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
-            agentStatus={app.state.agentStatus}
-            onStop={app.stopAgent}
-          />
+          <div
+            className="flex flex-col flex-shrink-0 overflow-hidden"
+            style={{ width: app.state.aiPanelWidth }}
+          >
+            {/* Mode tab bar */}
+            <div
+              className="flex items-center gap-0.5 px-2 py-1 flex-shrink-0"
+              style={{
+                borderBottom: '1px solid var(--border-faint)',
+                background: 'var(--bg-base)',
+              }}
+            >
+              {(['chat', 'tasks'] as AiPanelMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setAiPanelMode(mode)}
+                  className="px-3 py-1 rounded-md text-[11px] font-medium capitalize"
+                  style={{
+                    background: aiPanelMode === mode ? 'var(--accent-subtle)' : 'transparent',
+                    color:
+                      aiPanelMode === mode ? 'var(--accent-hover)' : 'var(--text-muted)',
+                  }}
+                >
+                  {mode === 'tasks' ? 'Agent Tasks' : 'Chat'}
+                </button>
+              ))}
+            </div>
+
+            {aiPanelMode === 'chat' ? (
+              <AiChatPanel
+                messages={app.state.chatMessages}
+                loading={app.state.aiLoading}
+                onSend={app.sendChatMessage}
+                providers={app.state.providers}
+                selectedProvider={app.state.selectedProvider}
+                selectedModel={app.state.selectedModel}
+                onProviderChange={(p) => app.update({ selectedProvider: p })}
+                onModelChange={(m) => app.update({ selectedModel: m })}
+                width={app.state.aiPanelWidth}
+                activeFilePath={app.state.activeFile}
+                reasoningEffort={app.state.reasoningEffort}
+                creditsConsumed={app.state.creditsConsumed}
+                onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
+                agentStatus={app.state.agentStatus}
+                onStop={app.stopAgent}
+              />
+            ) : (
+              <TaskPanel
+                width={app.state.aiPanelWidth}
+                projectPath={app.state.projectPath}
+                providers={app.state.providers}
+                selectedProvider={app.state.selectedProvider}
+                selectedModel={app.state.selectedModel}
+                apiKey={app.state.apiKey}
+                reasoningEffort={app.state.reasoningEffort}
+                onProviderChange={(p) => app.update({ selectedProvider: p })}
+                onModelChange={(m) => app.update({ selectedModel: m })}
+                onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
+              />
+            )}
+          </div>
         )}
       </div>
 
