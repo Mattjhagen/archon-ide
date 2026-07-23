@@ -32,7 +32,7 @@ export function TaskTimeline({ events }: TaskTimelineProps) {
             >
               {ev.summary}
             </p>
-            {'preview' in ev.metadata && ev.metadata.preview && (
+            {'preview' in ev.metadata && Boolean(ev.metadata.preview) && (
               <pre
                 className="text-[10px] mt-1 whitespace-pre-wrap break-words"
                 style={{ color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}
