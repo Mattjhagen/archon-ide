@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import type { AppState } from '../../hooks/useAppState';
 import type { TreeNode } from '../../types';
+import { authenticatedFetch } from '../../lib/supabase';
 
 interface SidebarProps {
   state: AppState;
@@ -177,7 +178,7 @@ function SearchPanel({ projectPath, onOpenFile }: { projectPath: string | null; 
     if (!projectPath || !query.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch('/api/fs/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ root: projectPath, query }) });
+      const res = await authenticatedFetch('/api/fs/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ root: projectPath, query }) });
       setResults(await res.json());
     } catch (e) { console.error('Search failed:', e); }
     setSearching(false);

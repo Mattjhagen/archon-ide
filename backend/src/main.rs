@@ -1,4 +1,5 @@
 mod ai;
+mod auth;
 mod fs;
 mod git;
 mod terminal;
@@ -6,7 +7,7 @@ mod ws;
 
 use actix_cors::Cors;
 use actix_files as fs_serve;
-use actix_web::{web, App, HttpServer, middleware};
+use actix_web::{web, App, HttpResponse, HttpServer, middleware};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -46,30 +47,32 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap(middleware::Logger::default())
             .app_data(state.clone())
-            .route("/api/fs/read", web::post().to(fs::read_file))
-            .route("/api/fs/write", web::post().to(fs::write_file))
-            .route("/api/fs/tree", web::post().to(fs::list_tree))
-            .route("/api/fs/mkdir", web::post().to(fs::mkdir))
-            .route("/api/fs/rename", web::post().to(fs::rename))
-            .route("/api/fs/delete", web::post().to(fs::delete_path))
-            .route("/api/fs/search", web::post().to(fs::search_files))
-            .route("/api/project/open", web::post().to(fs::open_project))
-            .route("/api/git/status", web::post().to(git::status))
-            .route("/api/git/diff", web::post().to(git::diff))
-            .route("/api/git/log", web::post().to(git::log_entries))
-            .route("/api/git/branches", web::post().to(git::branches))
-            .route("/api/git/commit", web::post().to(git::commit))
-            .route("/api/git/blame", web::post().to(git::blame))
-            .route("/api/ai/providers", web::get().to(ai::list_providers))
-            .route("/api/ai/chat", web::post().to(ai::chat))
-            .route("/api/ai/complete", web::post().to(ai::complete))
-            .route("/api/term/create", web::post().to(terminal::create_session))
-            .route("/api/term/input", web::post().to(terminal::write_input))
-            .route("/api/term/resize", web::post().to(terminal::resize))
-            .route("/api/term/destroy", web::post().to(terminal::destroy_session))
-            .route("/api/diff/apply", web::post().to(fs::apply_diff))
-            .route("/api/diff/preview", web::post().to(fs::preview_diff))
-            .route("/ws", web::get().to(ws::ws_handler))
+            .route("/health", web::get().to(|| async { HttpResponse::Ok().json(serde_json::json!({"status": "ok"})) }))
+            .service(web::scope("/api")
+                .wrap(middleware::from_fn(auth::require_auth))
+                .route("/fs/read", web::post().to(fs::read_file))
+                .route("/fs/write", web::post().to(fs::write_file))
+                .route("/fs/tree", web::post().to(fs::list_tree))
+                .route("/fs/mkdir", web::post().to(fs::mkdir))
+                .route("/fs/rename", web::post().to(fs::rename))
+                .route("/fs/delete", web::post().to(fs::delete_path))
+                .route("/fs/search", web::post().to(fs::search_files))
+                .route("/project/open", web::post().to(fs::open_project))
+                .route("/git/status", web::post().to(git::status))
+                .route("/git/diff", web::post().to(git::diff))
+                .route("/git/log", web::post().to(git::log_entries))
+                .route("/git/branches", web::post().to(git::branches))
+                .route("/git/commit", web::post().to(git::commit))
+                .route("/git/blame", web::post().to(git::blame))
+                .route("/ai/providers", web::get().to(ai::list_providers))
+                .route("/ai/chat", web::post().to(ai::chat))
+                .route("/ai/complete", web::post().to(ai::complete))
+                .route("/term/create", web::post().to(terminal::create_session))
+                .route("/term/input", web::post().to(terminal::write_input))
+                .route("/term/resize", web::post().to(terminal::resize))
+                .route("/term/destroy", web::post().to(terminal::destroy_session))
+                .route("/diff/apply", web::post().to(fs::apply_diff))
+                .route("/diff/preview", web::post().to(fs::preview_diff)))
             .service(fs_serve::Files::new("/", dist.to_string_lossy().as_ref()).index_file("index.html"))
     })
     .bind(("0.0.0.0", port))?

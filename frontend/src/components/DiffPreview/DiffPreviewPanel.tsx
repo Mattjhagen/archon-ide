@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, X, FileDiff } from 'lucide-react';
+import { authenticatedFetch } from '../../lib/supabase';
 
 interface DiffPreviewProps {
   diffPreview: {
@@ -26,7 +27,7 @@ export function DiffPreviewPanel({ diffPreview, onAccept, onReject, filePath }: 
   useEffect(() => {
     const generateDiff = async () => {
       try {
-        const res = await fetch('/api/diff/preview', {
+        const res = await authenticatedFetch('/api/diff/preview', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: diffPreview.path, new_content: diffPreview.newContent }),

@@ -3,6 +3,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { Monitor } from 'lucide-react';
 import 'xterm/css/xterm.css';
+import { authenticatedFetch } from '../../lib/supabase';
 
 interface TerminalPanelProps {
   projectPath: string;
@@ -21,7 +22,7 @@ export function TerminalPanel({ projectPath, sessionId, onSessionCreated }: Term
 
     const createSession = async () => {
       try {
-        const res = await fetch('/api/term/create', {
+        const res = await authenticatedFetch('/api/term/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ project_path: projectPath, cols: 120, rows: 24 }),
@@ -89,7 +90,7 @@ export function TerminalPanel({ projectPath, sessionId, onSessionCreated }: Term
 
     terminal.onData((data) => {
       if (sessionId) {
-        fetch('/api/term/input', {
+        authenticatedFetch('/api/term/input', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: sessionId, data }),
@@ -102,7 +103,7 @@ export function TerminalPanel({ projectPath, sessionId, onSessionCreated }: Term
       if (sessionId) {
         const dims = fitAddon.proposeDimensions();
         if (dims) {
-          fetch('/api/term/resize', {
+          authenticatedFetch('/api/term/resize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: sessionId, cols: dims.cols, rows: dims.rows }),
