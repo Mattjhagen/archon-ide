@@ -17,7 +17,7 @@ enum Environment {
         switch self {
         case .development: return URL(string: "http://localhost:54321")!
         case .staging: return URL(string: "https://staging.relayapp.pro")!
-        case .production: return URL(string: "https://ibhrmenurandwvvebqfb.supabase.co")!
+        case .production: return URL(string: "https://sbbkmdnyzzidywjkdhye.supabase.co")!
         }
     }
     
