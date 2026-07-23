@@ -92,8 +92,8 @@ pub async fn create_task(
     let api_key = body.api_key.clone().filter(|k| !k.is_empty());
     let stored = state.agent_tasks.create(task, api_key).await;
 
-    // Launch background runner
-    spawn_task_runner(&stored, state.agent_tasks.clone());
+    // Launch background runner (passes memory store for cross-session context)
+    spawn_task_runner(&stored, state.agent_tasks.clone(), state.agent_memory.clone());
 
     HttpResponse::Created().json(&stored)
 }
@@ -186,6 +186,46 @@ pub async fn cancel_task(
         Err(e) => HttpResponse::InternalServerError()
             .json(serde_json::json!({"error": e.to_string()})),
     }
+}
+
+/// GET /api/agent/memory?workspace_path=<path>
+///
+/// Return the workspace context memory entries for the current user's open project.
+/// Scoped to the authenticated user through the task ownership chain.
+pub async fn get_memory(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+    query: web::Query<WorkspacePathQuery>,
+) -> HttpResponse {
+    if auth_user(&req).is_none() {
+        return HttpResponse::Unauthorized()
+            .json(serde_json::json!({"error": "authentication required"}));
+    }
+    let entries = state.agent_memory.get_all(&query.workspace_path).await;
+    HttpResponse::Ok().json(entries)
+}
+
+/// DELETE /api/agent/memory?workspace_path=<path>
+///
+/// Clear all memory entries for a workspace.
+pub async fn clear_memory(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+    query: web::Query<WorkspacePathQuery>,
+) -> HttpResponse {
+    if auth_user(&req).is_none() {
+        return HttpResponse::Unauthorized()
+            .json(serde_json::json!({"error": "authentication required"}));
+    }
+    state.agent_memory.clear(&query.workspace_path).await;
+    HttpResponse::Ok().json(serde_json::json!({"ok": true}))
+}
+
+// ─── Query types ──────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct WorkspacePathQuery {
+    pub workspace_path: String,
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
