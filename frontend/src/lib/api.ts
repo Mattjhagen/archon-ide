@@ -14,6 +14,7 @@ import type {
   SearchResult,
   DiffEntry,
 } from '../types';
+import { authenticatedFetch } from './supabase';
 
 const API_BASE = '/api';
 
@@ -28,7 +29,7 @@ async function request<T>(
   };
   if (body) opts.body = JSON.stringify(body);
 
-  const res = await fetch(`${API_BASE}${path}`, opts);
+  const res = await authenticatedFetch(`${API_BASE}${path}`, opts);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Request failed: ${res.status}`);

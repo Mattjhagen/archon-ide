@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react';
 import type { TreeNode, OpenFile, SidebarPanel, GitStatusResult, ProviderInfo } from '../types';
 import { detectLanguage } from '../lib/utils';
 import { fs, git, ai } from '../lib/api';
+import { authenticatedFetch } from '../lib/supabase';
 
 export interface AppState {
   // Project
@@ -286,7 +287,7 @@ export function useAppState() {
   // Import diff module
   const diff = {
     preview: async (path: string, newContent: string) => {
-      const res = await fetch('/api/diff/preview', {
+      const res = await authenticatedFetch('/api/diff/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path, new_content: newContent }),
