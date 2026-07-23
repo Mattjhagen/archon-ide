@@ -73,7 +73,7 @@ private extension UIColor {
 /// Filled teal call-to-action. Dark label on the bright accent
 /// keeps WCAG contrast; scale feedback respects Reduce Motion.
 struct IDEAccentButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @SwiftUI.Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

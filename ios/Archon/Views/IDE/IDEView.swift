@@ -2,7 +2,7 @@ import SwiftUI
 
 struct IDEView: View {
     @StateObject private var ideManager = IDEManager()
-    @Environment(\.horizontalSizeClass) private var hSizeClass
+    @SwiftUI.Environment(\.horizontalSizeClass) private var hSizeClass
 
     @State private var showExplorerSheet = false
     @State private var showAgentSheet = false
