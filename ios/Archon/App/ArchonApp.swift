@@ -8,7 +8,7 @@ struct ArchonApp: App {
         WindowGroup {
             Group {
                 if authManager.isAuthenticated {
-                    TaskInboxView()
+                    IDEView()
                 } else {
                     WelcomeScreen()
                 }
