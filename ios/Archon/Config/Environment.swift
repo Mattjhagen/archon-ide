@@ -6,11 +6,8 @@ enum Environment {
     case production
     
     static var current: Environment {
-        #if DEBUG
-        return .development
-        #else
+        // Force production while testing the real instance in the simulator
         return .production
-        #endif
     }
     
     var supabaseURL: URL {
