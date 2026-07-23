@@ -25,6 +25,8 @@ class TaskDetailViewModel: ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private var processedEventIds = Set<String>()
     
+    private var currentTaskToken = UUID()
+    
     init(taskId: String, apiClient: APIClientProtocol = AuthenticatedAPIClient(), pollingInterval: TimeInterval = 3.0, sleeper: SleeperProtocol = DefaultSleeper()) {
         self.taskId = taskId
         self.apiClient = apiClient
@@ -38,11 +40,16 @@ class TaskDetailViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        pollingTask = Task {
+        let token = UUID()
+        currentTaskToken = token
+        
+        pollingTask = Task { [weak self] in
             var consecutiveFailures = 0
             
             while !Task.isCancelled {
-                let success = await fetchTaskDetails()
+                guard let self = self, self.currentTaskToken == token else { break }
+                
+                let success = await self.fetchTaskDetails()
                 
                 if success {
                     consecutiveFailures = 0
@@ -56,48 +63,59 @@ class TaskDetailViewModel: ObservableObject {
                 }
                 
                 // If task is in a terminal state, stop polling
-                if let status = task?.status, status == .completed || status == .failed || status == .cancelled || status == .blocked {
+                if let status = self.task?.status, status == .completed || status == .failed || status == .cancelled || status == .blocked {
                     break
                 }
                 
-                let sleepDuration = success ? pollingInterval : min(pollingInterval * pow(2.0, Double(consecutiveFailures)), 30.0)
-                try? await sleeper.sleep(nanoseconds: UInt64(sleepDuration * 1_000_000_000))
+                let sleepDuration = success ? self.pollingInterval : min(self.pollingInterval * pow(2.0, Double(consecutiveFailures)), 30.0)
+                try? await self.sleeper.sleep(nanoseconds: UInt64(sleepDuration * 1_000_000_000))
             }
-            self.isLoading = false
-            self.pollingTask = nil
+            if let self = self, self.currentTaskToken == token {
+                self.isLoading = false
+                self.pollingTask = nil
+            }
         }
     }
     
     func stopPolling() {
         pollingTask?.cancel()
         pollingTask = nil
+        currentTaskToken = UUID()
     }
     
     private func fetchTaskDetails() async -> Bool {
+        var partialSuccess = false
+        
+        // 1. Fetch Task Status
         do {
-            async let fetchedTask = apiClient.getTaskDetails(id: taskId)
-            async let fetchedEvents = apiClient.getTaskEvents(id: taskId)
-            
-            let (newTask, newEvents) = try await (fetchedTask, fetchedEvents)
-            
+            let fetchedTask = try await apiClient.getTaskDetails(id: taskId)
+            if Task.isCancelled { return true }
+            self.task = fetchedTask
+            partialSuccess = true
+        } catch {
+            // Task fetch failed, but we will still try events if partialSuccess wasn't true?
+            // Actually, if task fetch fails, it's a failure for this cycle.
+        }
+        
+        // 2. Fetch Events
+        do {
+            let fetchedEvents = try await apiClient.getTaskEvents(id: taskId)
             if Task.isCancelled { return true }
             
-            self.task = newTask
-            
             // Deduplicate and append events, preserving sequence order
-            let sortedNewEvents = newEvents.sorted(by: { $0.sequence < $1.sequence })
+            let sortedNewEvents = fetchedEvents.sorted(by: { $0.sequence < $1.sequence })
             for event in sortedNewEvents {
                 if !processedEventIds.contains(event.id) {
                     processedEventIds.insert(event.id)
                     events.append(event)
                 }
             }
-            // Sort UI representation (newest first)
-            self.events.sort(by: { $0.sequence > $1.sequence })
+            // Sort UI representation (ascending/oldest first for live timeline)
+            self.events.sort(by: { $0.sequence < $1.sequence })
             
             return true
         } catch {
-            return false
+            return partialSuccess
         }
     }
     
