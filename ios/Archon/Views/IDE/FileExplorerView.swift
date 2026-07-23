@@ -7,9 +7,9 @@ struct FileExplorerView: View {
         List(ideManager.fileTree, children: \.children, selection: $ideManager.selectedFile) { node in
             NavigationLink(value: node) {
                 HStack(spacing: 10) {
-                    Image(systemName: node.type == .folder ? "folder.fill" : "doc.text")
+                    Image(systemName: node.iconName)
                         .font(.subheadline)
-                        .foregroundStyle(node.type == .folder ? IDETheme.warning : IDETheme.textSub)
+                        .foregroundStyle(node.iconColor)
                         .frame(width: 20)
                     Text(node.name)
                         .font(.subheadline)
@@ -22,6 +22,10 @@ struct FileExplorerView: View {
                         .lineLimit(1)
                 }
                 .frame(minHeight: 44)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(
+                    node.type == .folder ? "Folder, \(node.name)" : "File, \(node.name)"
+                )
             }
             .disabled(node.type == .folder)
             .listRowBackground(

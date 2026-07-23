@@ -100,3 +100,41 @@ extension View {
             .contentShape(Rectangle())
     }
 }
+
+// MARK: - FileNode presentation
+
+extension FileNode {
+    private var ext: String {
+        (name as NSString).pathExtension.lowercased()
+    }
+
+    var iconName: String {
+        guard type == .file else { return "folder.fill" }
+        switch ext {
+        case "swift":             return "swift"
+        case "js", "jsx":         return "curlybraces"
+        case "ts", "tsx":         return "curlybraces"
+        case "json", "yaml", "yml": return "gearshape.2.fill"
+        case "md":                return "doc.text.fill"
+        case "html":              return "globe"
+        case "css":               return "paintbrush.pointed.fill"
+        case "png", "jpg", "jpeg", "svg", "gif": return "photo.fill"
+        case "sh":                return "terminal.fill"
+        default:                  return "doc.text"
+        }
+    }
+
+    var iconColor: Color {
+        guard type == .file else { return IDETheme.warning }
+        switch ext {
+        case "swift":             return Color(.sRGB, red: 1, green: 0.42, blue: 0.21, opacity: 1)
+        case "js", "jsx":         return IDETheme.warning
+        case "ts", "tsx":         return Color(.sRGB, red: 0, green: 0.48, blue: 0.8, opacity: 1)
+        case "json", "yaml", "yml": return IDETheme.textSub
+        case "html":              return Color(.sRGB, red: 0.89, green: 0.31, blue: 0.15, opacity: 1)
+        case "css":               return Color(.sRGB, red: 0.48, green: 0.41, blue: 0.93, opacity: 1)
+        case "sh":                return IDETheme.success
+        default:                  return IDETheme.textSub
+        }
+    }
+}
