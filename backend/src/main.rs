@@ -16,6 +16,7 @@ pub struct AppState {
     pub open_project: Arc<RwLock<Option<String>>>,
     pub terminal_sessions: terminal::TerminalManager,
     pub agent_tasks: Arc<agent::repository::TaskStore>,
+    pub agent_memory: Arc<agent::memory::MemoryStore>,
 }
 
 #[actix_web::main]
@@ -32,6 +33,7 @@ async fn main() -> std::io::Result<()> {
         open_project: Arc::new(RwLock::new(None)),
         terminal_sessions: terminal::TerminalManager::new(),
         agent_tasks: agent::repository::TaskStore::new(),
+        agent_memory: agent::memory::MemoryStore::new(),
     });
 
     let dist = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -81,7 +83,10 @@ async fn main() -> std::io::Result<()> {
                 .route("/agent/tasks", web::get().to(agent::routes::list_tasks))
                 .route("/agent/tasks/{id}", web::get().to(agent::routes::get_task))
                 .route("/agent/tasks/{id}/events", web::get().to(agent::routes::get_task_events))
-                .route("/agent/tasks/{id}/cancel", web::post().to(agent::routes::cancel_task)))
+                .route("/agent/tasks/{id}/cancel", web::post().to(agent::routes::cancel_task))
+                // Workspace context memory
+                .route("/agent/memory", web::get().to(agent::routes::get_memory))
+                .route("/agent/memory", web::delete().to(agent::routes::clear_memory)))
             .service(fs_serve::Files::new("/", dist.to_string_lossy().as_ref()).index_file("index.html"))
     })
     .bind(("0.0.0.0", port))?

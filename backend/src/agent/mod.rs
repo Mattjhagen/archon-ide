@@ -9,6 +9,7 @@
 //   routes         — HTTP handlers for the agent task API
 
 pub mod domain;
+pub mod memory;
 pub mod model_adapter;
 pub mod repository;
 pub mod routes;
