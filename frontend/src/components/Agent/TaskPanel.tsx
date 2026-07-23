@@ -10,6 +10,7 @@ import {
 import type { ProviderInfo } from '../../types';
 import { agentApi } from '../../lib/agentApi';
 import { TaskTimeline } from './TaskTimeline';
+import { WorkspaceMemory } from './WorkspaceMemory';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -589,6 +590,9 @@ export function TaskPanel({
                 <TaskTimeline events={events} />
                 <div ref={eventsEndRef} />
               </div>
+
+              {/* Workspace memory */}
+              {projectPath && <WorkspaceMemory workspacePath={projectPath} />}
             </div>
           ) : (
             !composerOpen && (
