@@ -1,23 +1,25 @@
-import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import userEvent from '@testing-library/user-event';
-import React from 'react';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { SetupScreen } from './SetupScreen';
 
 describe('SetupScreen Accessibility and Product Truth', () => {
   it('has semantic radiogroup roles for accessibility', () => {
-    render(<SetupScreen appearance="dark" onAppearanceChange={vi.fn()} onComplete={vi.fn()} />);
-    expect(screen.getByRole('radiogroup', { name: /Select appearance theme/i })).toBeDefined();
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    act(() => { root.render(<SetupScreen appearance="obsidian" onAppearanceChange={vi.fn()} onComplete={vi.fn()} />); });
+    expect(container.querySelector('[role="radiogroup"][aria-label="Select appearance theme"]')).not.toBeNull();
+    root.unmount();
   });
 
   it('mock provider clearly indicates simulated responses', async () => {
-    render(<SetupScreen appearance="dark" onAppearanceChange={vi.fn()} onComplete={vi.fn()} />);
-    
-    // Navigate to step 1
-    const continueBtn = screen.getByRole('button', { name: /Continue/i });
-    await userEvent.click(continueBtn);
-    
-    expect(await screen.findByText(/Simulated mock responses \(not real analysis\)/i)).toBeDefined();
-    expect(screen.getByRole('radiogroup', { name: /Select AI provider/i })).toBeDefined();
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    act(() => { root.render(<SetupScreen appearance="obsidian" onAppearanceChange={vi.fn()} onComplete={vi.fn()} />); });
+    const continueButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('Continue'));
+    await act(async () => { continueButton?.click(); });
+    expect(container.textContent).toMatch(/Simulated mock responses \(not real analysis\)/i);
+    expect(container.querySelector('[role="radiogroup"][aria-label="Select AI provider"]')).not.toBeNull();
+    root.unmount();
   });
 });

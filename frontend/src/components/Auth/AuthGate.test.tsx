@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import React from 'react';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { AuthGate } from './AuthGate';
 
 vi.mock('../../lib/supabase', () => ({
@@ -14,14 +14,21 @@ vi.mock('../../lib/supabase', () => ({
 
 describe('AuthGate Accessibility and Product Truth', () => {
   it('does not falsely claim workspace isolation is ready', async () => {
-    render(<AuthGate><div>Content</div></AuthGate>);
-    expect(await screen.findByText(/isolated workspaces coming next/i)).toBeDefined();
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    await act(async () => { root.render(<AuthGate><div>Content</div></AuthGate>); });
+    await act(async () => { await Promise.resolve(); });
+    expect(container.textContent).toMatch(/isolated workspaces coming next/i);
+    root.unmount();
   });
   
   it('does not imply GitHub auth grants repo access', async () => {
-    render(<AuthGate><div>Content</div></AuthGate>);
-    const githubBtn = await screen.findByRole('button', { name: /Sign in with GitHub \(does not grant repository access\)/i });
-    expect(githubBtn).toBeDefined();
-    expect(githubBtn.textContent).toMatch(/No repo access/i);
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    await act(async () => { root.render(<AuthGate><div>Content</div></AuthGate>); });
+    await act(async () => { await Promise.resolve(); });
+    const githubButton = container.querySelector('button[aria-label*="does not grant repository access"]');
+    expect(githubButton?.textContent).toMatch(/No repo access/i);
+    root.unmount();
   });
 });
