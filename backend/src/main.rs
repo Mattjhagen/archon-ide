@@ -5,6 +5,7 @@ mod fs;
 mod git;
 mod terminal;
 mod ws;
+mod workspace;
 
 use actix_cors::Cors;
 use actix_files as fs_serve;
@@ -16,6 +17,7 @@ pub struct AppState {
     pub open_project: Arc<RwLock<Option<String>>>,
     pub terminal_sessions: terminal::TerminalManager,
     pub agent_tasks: Arc<agent::repository::TaskStore>,
+    pub workspaces: Arc<workspace::repository::WorkspaceStore>,
 }
 
 #[actix_web::main]
@@ -32,6 +34,7 @@ async fn main() -> std::io::Result<()> {
         open_project: Arc::new(RwLock::new(None)),
         terminal_sessions: terminal::TerminalManager::new(),
         agent_tasks: agent::repository::TaskStore::new(),
+        workspaces: workspace::repository::WorkspaceStore::new(),
     });
 
     let dist = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -82,8 +85,11 @@ async fn main() -> std::io::Result<()> {
                 .route("/agent/tasks/{id}", web::get().to(agent::routes::get_task))
                 .route("/agent/tasks/{id}/events", web::get().to(agent::routes::get_task_events))
                 .route("/agent/tasks/{id}/cancel", web::post().to(agent::routes::cancel_task))
-                .route("/workspaces/snapshot", web::post().to(agent::workspace_sync::get_snapshot))
-                .route("/workspaces/patch", web::post().to(agent::workspace_sync::apply_patch)))
+                .route("/workspaces", web::post().to(workspace::routes::create_workspace))
+                .route("/workspaces", web::get().to(workspace::routes::list_workspaces))
+                .route("/workspaces/{id}", web::get().to(workspace::routes::get_workspace))
+                .route("/workspaces/{id}/snapshot", web::post().to(agent::workspace_sync::get_snapshot))
+                .route("/workspaces/{id}/patch", web::post().to(agent::workspace_sync::apply_patch)))
             .service(fs_serve::Files::new("/", dist.to_string_lossy().as_ref()).index_file("index.html"))
     })
     .bind(("0.0.0.0", port))?

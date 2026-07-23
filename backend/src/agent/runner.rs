@@ -55,16 +55,25 @@ const ALLOWED_ACTIONS: &[&str] = &[
 
 /// Spawn a background tokio task that runs the agent loop.
 /// Returns immediately; the task continues after the HTTP request ends.
-pub fn spawn_task_runner(task: &AgentTask, store: Arc<TaskStore>) {
+pub fn spawn_task_runner(task: &AgentTask, tasks: Arc<TaskStore>, workspaces: Arc<WorkspaceStore>) {
     let task_id = task.id;
     let user_id = task.user_id.clone();
-    let workspace_path = task.workspace_path.clone();
     let provider = task.provider.clone();
     let model = task.model.clone();
-    let effort = task.reasoning_effort;
+    let effort = task.reasoning_effort.clone();
     let request = task.request.clone();
+    let workspace_id = task.workspace_id;
 
     tokio::spawn(async move {
+        // Fetch workspace to get the physical path
+        let workspace_path = match workspaces.get_for_user(workspace_id, &user_id).await {
+            Some(ws) => ws.server_path,
+            None => {
+                let _ = tasks.transition(task_id, &user_id, TaskStatus::Failed, Some(("WORKSPACE_NOT_FOUND".into(), "Workspace not found".into()))).await;
+                return;
+            }
+        };
+
         run_task(
             task_id,
             user_id,
@@ -73,7 +82,7 @@ pub fn spawn_task_runner(task: &AgentTask, store: Arc<TaskStore>) {
             model,
             effort,
             request,
-            store,
+            tasks,
         )
         .await;
     });

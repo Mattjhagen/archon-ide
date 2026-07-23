@@ -108,8 +108,9 @@ pub struct AgentTask {
     pub error_code: Option<String>,
     pub error_message: Option<String>,
     pub cancel_requested_at: Option<DateTime<Utc>>,
-    /// Server-side workspace path.  Not sensitive, but drives WorkspacePolicy validation.
-    pub workspace_path: String,
+    pub error_message: Option<String>,
+    pub cancel_requested_at: Option<DateTime<Utc>>,
+    pub workspace_id: Uuid,
 }
 
 impl AgentTask {
@@ -120,14 +121,14 @@ impl AgentTask {
         provider: String,
         model: String,
         reasoning_effort: ReasoningEffort,
-        workspace_path: String,
+        workspace_id: Uuid,
     ) -> Self {
         let (max_steps, credit_limit) = effort_limits(reasoning_effort);
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
             user_id,
-            workspace_id: None,
+            workspace_id,
             title,
             request,
             provider,
@@ -145,7 +146,6 @@ impl AgentTask {
             error_code: None,
             error_message: None,
             cancel_requested_at: None,
-            workspace_path,
         }
     }
 }
@@ -334,7 +334,7 @@ mod tests {
             "u".into(), "t".into(), "r".into(),
             "mock".into(), "mock-responses".into(),
             ReasoningEffort::Low,
-            "/workspace".into(),
+            Uuid::new_v4(),
         );
         assert_eq!(task.max_steps, 5);
         assert_eq!(task.credit_limit, 20);
@@ -346,7 +346,7 @@ mod tests {
             "u".into(), "t".into(), "r".into(),
             "mock".into(), "mock-responses".into(),
             ReasoningEffort::High,
-            "/workspace".into(),
+            Uuid::new_v4(),
         );
         assert_eq!(task.max_steps, 40);
         assert_eq!(task.credit_limit, 500);
@@ -360,7 +360,7 @@ mod tests {
             "user-1".into(), "title".into(), "request".into(),
             "anthropic".into(), "claude-sonnet-4".into(),
             ReasoningEffort::Medium,
-            "/workspace/project".into(),
+            Uuid::new_v4(),
         );
         let json = serde_json::to_string(&task).unwrap();
         // These patterns must never appear in serialized task output

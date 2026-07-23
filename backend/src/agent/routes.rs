@@ -40,9 +40,8 @@ pub struct CreateTaskReq {
     /// Bring-your-own-key.  Held in memory only for the task's lifetime;
     /// never stored in the task entity or logged.
     pub api_key: Option<String>,
-    /// Server-side workspace path.  All file operations are validated
-    /// against this root via WorkspacePolicy.
-    pub workspace_path: String,
+    /// Server-side workspace ID to attach the agent to.
+    pub workspace_id: Uuid,
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
@@ -73,10 +72,7 @@ pub async fn create_task(
         return HttpResponse::BadRequest()
             .json(serde_json::json!({"error": "request must be 1–10 000 characters"}));
     }
-    if body.workspace_path.trim().is_empty() {
-        return HttpResponse::BadRequest()
-            .json(serde_json::json!({"error": "workspace_path is required"}));
-    }
+
 
     let task = AgentTask::new(
         user.id.clone(),
@@ -85,7 +81,7 @@ pub async fn create_task(
         body.provider.clone(),
         body.model.clone(),
         body.reasoning_effort,
-        body.workspace_path.clone(),
+        body.workspace_id,
     );
 
     // Store API key separately from the task entity
@@ -93,7 +89,7 @@ pub async fn create_task(
     let stored = state.agent_tasks.create(task, api_key).await;
 
     // Launch background runner
-    spawn_task_runner(&stored, state.agent_tasks.clone());
+    spawn_task_runner(&stored, state.agent_tasks.clone(), state.workspaces.clone());
 
     HttpResponse::Created().json(&stored)
 }

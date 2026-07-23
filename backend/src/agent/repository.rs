@@ -268,7 +268,7 @@ mod tests {
             "mock".to_string(),
             "mock-responses".to_string(),
             ReasoningEffort::Low,
-            "/workspace/test".to_string(),
+            Uuid::new_v4(),
         )
     }
 
