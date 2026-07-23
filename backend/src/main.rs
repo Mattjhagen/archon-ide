@@ -1,3 +1,4 @@
+mod agent;
 mod ai;
 mod auth;
 mod fs;
@@ -14,6 +15,7 @@ use tokio::sync::RwLock;
 pub struct AppState {
     pub open_project: Arc<RwLock<Option<String>>>,
     pub terminal_sessions: terminal::TerminalManager,
+    pub agent_tasks: Arc<agent::repository::TaskStore>,
 }
 
 #[actix_web::main]
@@ -29,6 +31,7 @@ async fn main() -> std::io::Result<()> {
     let state = web::Data::new(AppState {
         open_project: Arc::new(RwLock::new(None)),
         terminal_sessions: terminal::TerminalManager::new(),
+        agent_tasks: agent::repository::TaskStore::new(),
     });
 
     let dist = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -72,7 +75,13 @@ async fn main() -> std::io::Result<()> {
                 .route("/term/resize", web::post().to(terminal::resize))
                 .route("/term/destroy", web::post().to(terminal::destroy_session))
                 .route("/diff/apply", web::post().to(fs::apply_diff))
-                .route("/diff/preview", web::post().to(fs::preview_diff)))
+                .route("/diff/preview", web::post().to(fs::preview_diff))
+                // Agent task runtime
+                .route("/agent/tasks", web::post().to(agent::routes::create_task))
+                .route("/agent/tasks", web::get().to(agent::routes::list_tasks))
+                .route("/agent/tasks/{id}", web::get().to(agent::routes::get_task))
+                .route("/agent/tasks/{id}/events", web::get().to(agent::routes::get_task_events))
+                .route("/agent/tasks/{id}/cancel", web::post().to(agent::routes::cancel_task)))
             .service(fs_serve::Files::new("/", dist.to_string_lossy().as_ref()).index_file("index.html"))
     })
     .bind(("0.0.0.0", port))?
