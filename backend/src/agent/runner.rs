@@ -28,6 +28,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::agent::domain::{AgentEvent, AgentTask, EventKind, TaskStatus};
+use crate::agent::memory::MemoryStore;
 use crate::agent::model_adapter::{call_model, AdapterMessage};
 use crate::agent::repository::TaskStore;
 use crate::agent::workspace::WorkspacePolicy;
@@ -55,7 +56,7 @@ const ALLOWED_ACTIONS: &[&str] = &[
 
 /// Spawn a background tokio task that runs the agent loop.
 /// Returns immediately; the task continues after the HTTP request ends.
-pub fn spawn_task_runner(task: &AgentTask, store: Arc<TaskStore>) {
+pub fn spawn_task_runner(task: &AgentTask, store: Arc<TaskStore>, memory: Arc<MemoryStore>) {
     let task_id = task.id;
     let user_id = task.user_id.clone();
     let workspace_path = task.workspace_path.clone();
@@ -74,6 +75,7 @@ pub fn spawn_task_runner(task: &AgentTask, store: Arc<TaskStore>) {
             effort,
             request,
             store,
+            memory,
         )
         .await;
     });
@@ -90,6 +92,7 @@ async fn run_task(
     effort: ReasoningEffort,
     request: String,
     store: Arc<TaskStore>,
+    memory: Arc<MemoryStore>,
 ) {
     let policy = WorkspacePolicy::new(&workspace_path);
 
@@ -107,7 +110,20 @@ async fn run_task(
     }
     emit(&store, task_id, EventKind::StatusChanged, "Planning started".into(), serde_json::json!({"status": "planning"})).await;
 
-    let system_prompt = build_system_prompt(&workspace_path, &request, effort);
+    // Inject cross-session workspace memory into the system prompt
+    let memory_block = memory.build_context_block(&workspace_path).await;
+    let context_entry_count = memory.get_context(&workspace_path).await.len();
+    if context_entry_count > 0 {
+        emit(
+            &store,
+            task_id,
+            EventKind::ToolResult,
+            format!("Loaded {context_entry_count} workspace memory entries"),
+            serde_json::json!({"memory_entries": context_entry_count}),
+        ).await;
+    }
+
+    let system_prompt = build_system_prompt(&workspace_path, &request, effort, &memory_block);
     let mut messages: Vec<AdapterMessage> = vec![
         AdapterMessage {
             role: "system".into(),
@@ -325,6 +341,13 @@ async fn run_task(
                                 let _ = store
                                     .transition(task_id, &user_id, TaskStatus::Completed, None)
                                     .await;
+
+                                // Write task summary to workspace memory so future tasks can
+                                // benefit from what was learned this session.
+                                memory
+                                    .record_task_summary(&workspace_path, summary.clone(), task_id)
+                                    .await;
+
                                 emit(
                                     &store,
                                     task_id,
@@ -378,9 +401,15 @@ async fn run_task(
                                 let tool_result =
                                     execute_tool(tool_name, &action.args, &policy).await;
 
-                                let (summary, result_text, ok) = match tool_result {
+                                let (summary, result_text, ok) = match &tool_result {
                                     Ok(content) => {
-                                        (format!("{tool_name} succeeded"), content, true)
+                                        // Record file writes to workspace memory
+                                        if tool_name == "write_file" {
+                                            if let Some(path) = action.args.get("path").and_then(|v| v.as_str()) {
+                                                memory.record_file_change(&workspace_path, path, task_id).await;
+                                            }
+                                        }
+                                        (format!("{tool_name} succeeded"), content.clone(), true)
                                     }
                                     Err(e) => {
                                         let msg = format!("{tool_name} failed: {e}");
@@ -662,7 +691,7 @@ fn format_args_preview(args: &serde_json::Map<String, serde_json::Value>) -> Str
         .join(", ")
 }
 
-fn build_system_prompt(workspace_path: &str, request: &str, effort: ReasoningEffort) -> String {
+fn build_system_prompt(workspace_path: &str, request: &str, effort: ReasoningEffort, memory_block: &str) -> String {
     let depth_hint = match effort {
         ReasoningEffort::Low => "Work efficiently — minimise tool calls.",
         ReasoningEffort::Medium => "Work thoroughly — verify changes before marking done.",
@@ -676,7 +705,7 @@ fn build_system_prompt(workspace_path: &str, request: &str, effort: ReasoningEff
 Workspace: {workspace_path}
 Task: {request}
 
-{depth_hint}
+{depth_hint}{memory_block}
 
 Respond with EXACTLY ONE JSON object — no markdown fences, no prose, just the JSON:
 {{
