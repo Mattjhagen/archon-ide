@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Cpu, Copy, Check, ChevronDown, Sparkles, BrainCircuit, Square, ListTodo } from 'lucide-react';
+import { Send, Cpu, Copy, Check, ChevronDown, Sparkles, BrainCircuit, Square } from 'lucide-react';
 import type { ProviderInfo, ReasoningEffort } from '../../types';
 
 interface AiChatPanelProps {
@@ -18,13 +18,12 @@ interface AiChatPanelProps {
   onReasoningEffortChange: (effort: ReasoningEffort) => void;
   agentStatus: string;
   onStop: () => void;
-  onOpenTasks: () => void;
 }
 
 export function AiChatPanel({
   messages, loading, onSend, providers, selectedProvider, selectedModel,
   onProviderChange, onModelChange, width, activeFilePath, reasoningEffort,
-  creditsConsumed, onReasoningEffortChange, agentStatus, onStop, onOpenTasks,
+  creditsConsumed, onReasoningEffortChange, agentStatus, onStop,
 }: AiChatPanelProps) {
   const [input, setInput] = useState('');
   const [showProviderMenu, setShowProviderMenu] = useState(false);
@@ -73,9 +72,6 @@ export function AiChatPanel({
           <span className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>AI Assistant</span>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={onOpenTasks} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px]" style={{ color: 'var(--accent-hover)', background: 'var(--accent-subtle)', border: '1px solid var(--border-faint)' }} title="Open autonomous tasks">
-            <ListTodo size={11} /> Tasks
-          </button>
           <div className="relative">
             <button
               onClick={() => setShowReasoningMenu(!showReasoningMenu)}
