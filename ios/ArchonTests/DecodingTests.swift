@@ -105,10 +105,9 @@ final class DecodingTests: XCTestCase {
         XCTAssertEqual(events[8].type, .error)
         
         // Verify fractional timestamps
-        let cal = Calendar(identifier: .gregorian)
         let evt2Date = events[1].timestamp
-        let nano = cal.component(.nanosecond, from: evt2Date)
-        XCTAssertTrue(nano > 120_000_000 && nano < 124_000_000) // approx 123ms
+        let expectedTime = 1721736001.123 // 2024-07-23T12:00:01.123Z
+        XCTAssertEqual(evt2Date.timeIntervalSince1970, expectedTime, accuracy: 0.001)
         
         // Verify metadata AnyCodable dynamic decoding
         let metadata = events[3].metadata
