@@ -72,8 +72,13 @@ class AuthenticatedAPIClient: APIClientProtocol {
                 try await Task.sleep(nanoseconds: UInt64(pow(2.0, Double(attempt))) * 1_000_000_000)
                 continue
             } else {
-                let error = try? JSONDecoder().decode(APIError.self, from: data)
-                throw error ?? APIError(message: "HTTP Error", code: httpResponse.statusCode)
+                // Backend bodies are {"error": ...} or {"message": ...};
+                // keep the HTTP status when the body doesn't carry one.
+                let decoded = try? JSONDecoder().decode(APIError.self, from: data)
+                throw APIError(
+                    message: decoded?.message ?? "HTTP error",
+                    code: decoded?.code ?? httpResponse.statusCode
+                )
             }
         }
         
