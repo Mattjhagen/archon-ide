@@ -25,7 +25,7 @@ class TaskInboxViewModel: ObservableObject {
             self.recentTasks = tasks.filter { $0.status == .completed || $0.status == .cancelled }
             
         } catch {
-            self.errorMessage = "Failed to load tasks: \(error.localizedDescription)"
+            self.errorMessage = "Failed to load tasks: \(error.displayMessage)"
         }
         isLoading = false
     }

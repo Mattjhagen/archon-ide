@@ -124,7 +124,7 @@ class TaskDetailViewModel: ObservableObject {
             try await apiClient.cancelTask(id: taskId)
             _ = await fetchTaskDetails()
         } catch {
-            self.errorMessage = "Failed to cancel task: \(error.localizedDescription)"
+            self.errorMessage = "Failed to cancel task: \(error.displayMessage)"
         }
     }
     

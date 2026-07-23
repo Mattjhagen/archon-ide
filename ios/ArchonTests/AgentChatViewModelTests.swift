@@ -11,6 +11,7 @@ final class SpyAPIClient: APIClientProtocol {
     var tasks: [ArchonTask] = []
     var eventsByTaskId: [String: [TaskEvent]] = [:]
     var createTaskError: APIError?
+    var plainCreateTaskError: Error?
 
     private(set) var createdRequests: [CreateTaskRequest] = []
     private(set) var taskDetailFetchCount = 0
@@ -37,6 +38,7 @@ final class SpyAPIClient: APIClientProtocol {
 
     func createTask(_ request: CreateTaskRequest) async throws -> ArchonTask {
         if let error = createTaskError { throw error }
+        if let error = plainCreateTaskError { throw error }
         createdRequests.append(request)
         let task = ArchonTask(
             id: "spy-task-\(createdRequests.count)",
@@ -159,6 +161,27 @@ final class AgentChatViewModelTests: XCTestCase {
 
         XCTAssertEqual(vm.errorMessage, "workspace_path is required (HTTP 400)")
         XCTAssertTrue(spy.createdRequests.isEmpty)
+    }
+
+    // Raw Swift error type names (e.g. "Archon.APIError error 1")
+    // must never reach the user, even for errors we don't recognize.
+    func testRawSwiftErrorNamesNeverSurface() async {
+        enum BareError: Error { case boom }
+
+        let spy = SpyAPIClient()
+        spy.providers = [provider(id: "p", configured: true)]
+        spy.plainCreateTaskError = BareError.boom
+        let vm = AgentChatViewModel(apiClient: spy, sleeper: HangSleeper())
+
+        await vm.loadInitialState()
+        await vm.send(request: "do the thing", workspacePath: "/srv/ws")
+
+        let message = vm.errorMessage ?? ""
+        XCTAssertFalse(message.isEmpty)
+        XCTAssertFalse(message.contains("BareError"))
+        XCTAssertFalse(message.contains("Archon."))
+        XCTAssertFalse(message.contains("error 1"))
+        XCTAssertEqual(message, "Something went wrong. Please try again.")
     }
 
     // D-4: a terminal task state ends polling after a single fetch —

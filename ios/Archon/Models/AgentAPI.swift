@@ -98,3 +98,21 @@ struct APIError: Codable, LocalizedError {
         return message
     }
 }
+
+extension Error {
+    /// Short human-readable text safe to show users. Falls back to a
+    /// generic message rather than ever exposing raw Swift error type
+    /// names like "Archon.APIError error 1".
+    var displayMessage: String {
+        if let api = self as? APIError {
+            return api.errorDescription ?? api.message
+        }
+        if let localized = (self as? LocalizedError)?.errorDescription {
+            return localized
+        }
+        if let urlError = self as? URLError {
+            return urlError.localizedDescription
+        }
+        return "Something went wrong. Please try again."
+    }
+}

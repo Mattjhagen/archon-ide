@@ -69,7 +69,7 @@ final class AgentChatViewModel: ObservableObject {
                 selectedModelId = first.models.first?.id
             }
         } catch {
-            errorMessage = "Could not load providers: \(error.localizedDescription)"
+            errorMessage = "Could not load providers: \(error.displayMessage)"
         }
 
         do {
@@ -80,7 +80,7 @@ final class AgentChatViewModel: ObservableObject {
                 attach(taskId: latest.id)
             }
         } catch {
-            errorMessage = "Could not load tasks: \(error.localizedDescription)"
+            errorMessage = "Could not load tasks: \(error.displayMessage)"
         }
     }
 
@@ -118,10 +118,8 @@ final class AgentChatViewModel: ObservableObject {
             ))
             errorMessage = nil
             attach(taskId: created.id)
-        } catch let apiError as APIError {
-            errorMessage = apiError.errorDescription ?? apiError.message
         } catch {
-            errorMessage = "Could not start task: \(error.localizedDescription)"
+            errorMessage = error.displayMessage
         }
     }
 
