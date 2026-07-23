@@ -36,7 +36,8 @@ class AuthenticatedAPIClient: APIClientProtocol {
             
             if (200...299).contains(httpResponse.statusCode) {
                 let decoder = JSONDecoder()
-                decoder.keyDecodingStrategy = .convertFromSnakeCase // Maps Rust snake_case to Swift camelCase
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+                decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(T.self, from: data)
             } else if method == "GET" && attempt < retryCount - 1 && httpResponse.statusCode >= 500 {
                 // Retry only safe GET requests on server errors

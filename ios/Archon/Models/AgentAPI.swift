@@ -27,7 +27,7 @@ struct ArchonTask: Codable, Identifiable {
     let currentStep: Int
     let maxSteps: Int
     let creditsUsed: Int
-    let creditsLimit: Int
+    let creditLimit: Int
     let createdAt: Date
     let updatedAt: Date
 }
