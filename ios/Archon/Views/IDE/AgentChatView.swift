@@ -86,12 +86,12 @@ struct AgentChatView: View {
             .background(IDETheme.elevated)
             .clipShape(Capsule())
         }
-        .accessibilityLabel("Choose provider and model. Current: \(selectedModelLabel)")
+        .accessibilityLabel("Server-Configured Providers. Current: \(selectedModelLabel)")
         .ideTouchTarget()
     }
 
     private var selectedModelLabel: String {
-        guard let provider = viewModel.selectedProvider else { return "Choose model" }
+        guard let provider = viewModel.selectedProvider else { return "Server-Configured Providers" }
         let model = provider.models.first { $0.id == viewModel.selectedModelId }
         return model.map { "\(provider.name) · \($0.name)" } ?? provider.name
     }
