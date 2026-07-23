@@ -2,6 +2,28 @@ use actix_web::{web, HttpResponse};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReasoningEffort {
+    Low,
+    Medium,
+    High,
+}
+
+impl Default for ReasoningEffort {
+    fn default() -> Self { Self::Medium }
+}
+
+impl ReasoningEffort {
+    fn multiplier(self) -> usize {
+        match self { Self::Low => 1, Self::Medium => 2, Self::High => 4 }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self { Self::Low => "low", Self::Medium => "medium", Self::High => "high" }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct ChatReq {
     pub messages: Vec<ChatMessage>,
@@ -11,6 +33,8 @@ pub struct ChatReq {
     pub temperature: Option<f32>,
     pub _stream: Option<bool>,
     pub api_key: Option<String>,
+    #[serde(default)]
+    pub reasoning_effort: ReasoningEffort,
 }
 
 #[derive(Deserialize, Clone)]
@@ -25,6 +49,20 @@ pub struct ChatResponse {
     pub model: String,
     pub provider: String,
     pub tokens_used: TokenUsage,
+    pub reasoning_effort: ReasoningEffort,
+    pub credit_units: usize,
+}
+
+fn chat_response(content: String, model: &str, provider: &str, input: usize, output: usize, effort: ReasoningEffort) -> HttpResponse {
+    let billable_blocks = (input + output).max(1).div_ceil(1000);
+    HttpResponse::Ok().json(ChatResponse {
+        content,
+        model: model.to_string(),
+        provider: provider.to_string(),
+        tokens_used: TokenUsage { input, output },
+        reasoning_effort: effort,
+        credit_units: billable_blocks * effort.multiplier(),
+    })
 }
 
 #[derive(Serialize)]
@@ -57,9 +95,8 @@ pub async fn list_providers() -> HttpResponse {
         id: "openai".to_string(),
         name: "OpenAI".to_string(),
         models: vec![
-            ModelInfo { id: "gpt-4o".to_string(), name: "GPT-4o".to_string() },
-            ModelInfo { id: "gpt-4o-mini".to_string(), name: "GPT-4o Mini".to_string() },
-            ModelInfo { id: "gpt-4-turbo".to_string(), name: "GPT-4 Turbo".to_string() },
+            ModelInfo { id: "gpt-5.6-sol".to_string(), name: "GPT-5.6 Sol".to_string() },
+            ModelInfo { id: "gpt-5.6-terra".to_string(), name: "GPT-5.6 Terra".to_string() },
         ],
         requires_key: true,
         configured: !openai_key.is_empty(),
@@ -76,6 +113,18 @@ pub async fn list_providers() -> HttpResponse {
         ],
         requires_key: true,
         configured: !anthropic_key.is_empty(),
+    });
+
+    let gemini_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
+    providers.push(ProviderInfo {
+        id: "gemini".to_string(),
+        name: "Google Gemini".to_string(),
+        models: vec![
+            ModelInfo { id: "gemini-3-pro-preview".to_string(), name: "Gemini 3 Pro".to_string() },
+            ModelInfo { id: "gemini-3-flash-preview".to_string(), name: "Gemini 3 Flash".to_string() },
+        ],
+        requires_key: true,
+        configured: !gemini_key.is_empty(),
     });
 
     // Ollama
@@ -121,12 +170,15 @@ pub async fn chat(
     let model = body.model.as_deref().unwrap_or("mock-responses");
     let max_tokens = body.max_tokens.unwrap_or(2048);
     let temperature = body.temperature.unwrap_or(0.7);
+    let effort = body.reasoning_effort;
 
     match provider {
-        "openai" => chat_openai(&body.messages, model, max_tokens, temperature, body.api_key.as_deref()).await,
-        "anthropic" => chat_anthropic(&body.messages, model, max_tokens, temperature, body.api_key.as_deref()).await,
-        "ollama" => chat_ollama(&body.messages, model, max_tokens, temperature).await,
-        _ => chat_mock(&body.messages, model).await,
+        "openai" => chat_openai(&body.messages, model, max_tokens, body.api_key.as_deref(), effort).await,
+        "anthropic" => chat_anthropic(&body.messages, model, max_tokens, temperature, body.api_key.as_deref(), effort).await,
+        "gemini" => chat_gemini(&body.messages, model, max_tokens, temperature, body.api_key.as_deref(), effort).await,
+        "ollama" => chat_ollama(&body.messages, model, max_tokens, temperature, effort).await,
+        "mock" => chat_mock(&body.messages, model, effort).await,
+        _ => HttpResponse::BadRequest().json(serde_json::json!({"error": "Unknown AI provider"})),
     }
 }
 
@@ -134,30 +186,30 @@ async fn chat_openai(
     messages: &[ChatMessage],
     model: &str,
     max_tokens: u32,
-    temperature: f32,
     request_key: Option<&str>,
+    effort: ReasoningEffort,
 ) -> HttpResponse {
     let api_key = match request_key.map(str::to_owned).or_else(|| std::env::var("OPENAI_API_KEY").ok()) {
         Some(k) if !k.is_empty() => k,
-        _ => return chat_mock(messages, model).await,
+        _ => return HttpResponse::BadRequest().json(serde_json::json!({"error": "Add your OpenAI API key in Settings to use this model."})),
     };
 
     let base_url = std::env::var("OPENAI_BASE_URL")
         .unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
 
     let client = Client::new();
-    let msgs: Vec<serde_json::Value> = messages.iter().map(|m| {
-        serde_json::json!({"role": m.role, "content": m.content})
+    let input: Vec<serde_json::Value> = messages.iter().map(|m| {
+        serde_json::json!({"role": m.role, "content": [{"type": "input_text", "text": m.content}]})
     }).collect();
 
-    let resp = client.post(format!("{}/chat/completions", base_url))
+    let resp = client.post(format!("{}/responses", base_url))
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .json(&serde_json::json!({
             "model": model,
-            "messages": msgs,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
+            "input": input,
+            "max_output_tokens": max_tokens,
+            "reasoning": { "effort": effort.as_str(), "context": "all_turns" },
         }))
         .send()
         .await;
@@ -168,18 +220,17 @@ async fn chat_openai(
             match r.text().await {
                 Ok(text) => {
                     if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
-                        let content = val["choices"][0]["message"]["content"]
-                            .as_str().unwrap_or("").to_string();
+                        if val.get("error").is_some() {
+                            return HttpResponse::BadGateway().json(&val);
+                        }
+                        let content = val["output"].as_array().into_iter().flatten()
+                            .flat_map(|item| item["content"].as_array().into_iter().flatten())
+                            .filter_map(|part| part["text"].as_str())
+                            .collect::<Vec<_>>().join("\n");
                         let usage = &val["usage"];
-                        HttpResponse::Ok().json(ChatResponse {
-                            content,
-                            model: model.to_string(),
-                            provider: "openai".to_string(),
-                            tokens_used: TokenUsage {
-                                input: usage["prompt_tokens"].as_u64().unwrap_or(0) as usize,
-                                output: usage["completion_tokens"].as_u64().unwrap_or(0) as usize,
-                            },
-                        })
+                        chat_response(content, model, "openai",
+                            usage["input_tokens"].as_u64().unwrap_or(0) as usize,
+                            usage["output_tokens"].as_u64().unwrap_or(0) as usize, effort)
                     } else {
                         HttpResponse::BadGateway()
                             .json(serde_json::json!({"error": "Invalid response from provider"}))
@@ -200,10 +251,11 @@ async fn chat_anthropic(
     max_tokens: u32,
     temperature: f32,
     request_key: Option<&str>,
+    effort: ReasoningEffort,
 ) -> HttpResponse {
     let api_key = match request_key.map(str::to_owned).or_else(|| std::env::var("ANTHROPIC_API_KEY").ok()) {
         Some(k) if !k.is_empty() => k,
-        _ => return chat_mock(messages, model).await,
+        _ => return HttpResponse::BadRequest().json(serde_json::json!({"error": "Add your Anthropic API key in Settings to use this model."})),
     };
 
     let client = Client::new();
@@ -226,6 +278,8 @@ async fn chat_anthropic(
         "max_tokens": max_tokens,
         "temperature": temperature,
         "messages": user_msgs,
+        "thinking": { "type": "adaptive" },
+        "output_config": { "effort": effort.as_str() },
     });
 
     if !system_msg.is_empty() {
@@ -245,22 +299,15 @@ async fn chat_anthropic(
             match r.text().await {
                 Ok(text) => {
                     if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
-                        let content = val["content"][0]["text"]
-                            .as_str().unwrap_or("").to_string();
+                        let content = val["content"].as_array().into_iter().flatten()
+                            .filter_map(|block| block["text"].as_str())
+                            .collect::<Vec<_>>().join("\n");
                         let input_tokens = val["usage"]["input_tokens"]
                             .as_u64().unwrap_or(0) as usize;
                         let output_tokens = val["usage"]["output_tokens"]
                             .as_u64().unwrap_or(0) as usize;
 
-                        HttpResponse::Ok().json(ChatResponse {
-                            content,
-                            model: model.to_string(),
-                            provider: "anthropic".to_string(),
-                            tokens_used: TokenUsage {
-                                input: input_tokens,
-                                output: output_tokens,
-                            },
-                        })
+                        chat_response(content, model, "anthropic", input_tokens, output_tokens, effort)
                     } else {
                         HttpResponse::BadGateway()
                             .json(serde_json::json!({"error": "Invalid response"}))
@@ -275,11 +322,73 @@ async fn chat_anthropic(
     }
 }
 
+async fn chat_gemini(
+    messages: &[ChatMessage],
+    model: &str,
+    max_tokens: u32,
+    temperature: f32,
+    request_key: Option<&str>,
+    effort: ReasoningEffort,
+) -> HttpResponse {
+    let api_key = match request_key.map(str::to_owned).or_else(|| std::env::var("GEMINI_API_KEY").ok()) {
+        Some(k) if !k.is_empty() => k,
+        _ => return HttpResponse::BadRequest().json(serde_json::json!({"error": "Add your Gemini API key in Settings to use this model."})),
+    };
+
+    let contents: Vec<serde_json::Value> = messages.iter()
+        .filter(|m| m.role != "system")
+        .map(|m| serde_json::json!({
+            "role": if m.role == "assistant" { "model" } else { "user" },
+            "parts": [{ "text": m.content }]
+        }))
+        .collect();
+    let system = messages.iter().filter(|m| m.role == "system")
+        .map(|m| m.content.as_str()).collect::<Vec<_>>().join("\n");
+
+    let mut payload = serde_json::json!({
+        "contents": contents,
+        "generationConfig": {
+            "maxOutputTokens": max_tokens,
+            "temperature": temperature,
+            "thinkingConfig": { "thinkingLevel": effort.as_str() }
+        }
+    });
+    if !system.is_empty() {
+        payload["systemInstruction"] = serde_json::json!({ "parts": [{ "text": system }] });
+    }
+
+    let result = Client::new()
+        .post(format!("https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent", model))
+        .header("x-goog-api-key", api_key)
+        .json(&payload)
+        .send().await;
+
+    match result {
+        Ok(r) => match r.json::<serde_json::Value>().await {
+            Ok(val) => {
+                if val.get("error").is_some() {
+                    return HttpResponse::BadGateway().json(&val);
+                }
+                let content = val["candidates"][0]["content"]["parts"].as_array().into_iter().flatten()
+                    .filter_map(|part| part["text"].as_str()).collect::<Vec<_>>().join("\n");
+                let usage = &val["usageMetadata"];
+                chat_response(content, model, "gemini",
+                    usage["promptTokenCount"].as_u64().unwrap_or(0) as usize,
+                    usage["candidatesTokenCount"].as_u64().unwrap_or(0) as usize,
+                    effort)
+            }
+            Err(e) => HttpResponse::BadGateway().json(serde_json::json!({"error": e.to_string()})),
+        },
+        Err(e) => HttpResponse::BadGateway().json(serde_json::json!({"error": e.to_string()})),
+    }
+}
+
 async fn chat_ollama(
     messages: &[ChatMessage],
     model: &str,
     max_tokens: u32,
     temperature: f32,
+    effort: ReasoningEffort,
 ) -> HttpResponse {
     let base_url = std::env::var("OLLAMA_BASE_URL")
         .unwrap_or_else(|_| "http://localhost:11434".to_string());
@@ -314,15 +423,7 @@ async fn chat_ollama(
                         let eval_count = val["eval_count"]
                             .as_u64().unwrap_or(0) as usize;
 
-                        HttpResponse::Ok().json(ChatResponse {
-                            content,
-                            model: model.to_string(),
-                            provider: "ollama".to_string(),
-                            tokens_used: TokenUsage {
-                                input: prompt_tokens,
-                                output: eval_count,
-                            },
-                        })
+                        chat_response(content, model, "ollama", prompt_tokens, eval_count, effort)
                     } else {
                         HttpResponse::BadGateway()
                             .json(serde_json::json!({"error": "Invalid response"}))
@@ -340,6 +441,7 @@ async fn chat_ollama(
 async fn chat_mock(
     messages: &[ChatMessage],
     model: &str,
+    effort: ReasoningEffort,
 ) -> HttpResponse {
     let last_msg = messages.last().map(|m| m.content.as_str()).unwrap_or("");
 
@@ -408,7 +510,7 @@ async fn chat_mock(
                - Add unit tests for the core logic\n\
                - Consider adding input validation\n\
                - Document the expected behavior\n\n\
-            Would you like me to elaborate on any of these points?",
+            Demo mode cannot inspect or change your workspace. Add a provider API key in Settings to start a real agent task.",
             last_msg.chars().take(100).collect::<String>()
         )
     };
@@ -416,15 +518,7 @@ async fn chat_mock(
     let input_tokens = messages.iter().map(|m| m.content.len() / 4).sum::<usize>();
     let output_tokens = response.len() / 4;
 
-    HttpResponse::Ok().json(ChatResponse {
-        content: response,
-        model: model.to_string(),
-        provider: "mock".to_string(),
-        tokens_used: TokenUsage {
-            input: input_tokens,
-            output: output_tokens,
-        },
-    })
+    chat_response(response, model, "mock", input_tokens, output_tokens, effort)
 }
 
 #[derive(Deserialize)]

@@ -235,6 +235,11 @@ function App() {
             onModelChange={(m) => app.update({ selectedModel: m })}
             width={app.state.aiPanelWidth}
             activeFilePath={app.state.activeFile}
+            reasoningEffort={app.state.reasoningEffort}
+            creditsConsumed={app.state.creditsConsumed}
+            onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
+            agentStatus={app.state.agentStatus}
+            onStop={app.stopAgent}
           />
         )}
       </div>

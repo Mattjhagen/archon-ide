@@ -2,8 +2,8 @@
 // Core application state hook
 // ============================================
 
-import { useState, useCallback } from 'react';
-import type { TreeNode, OpenFile, SidebarPanel, GitStatusResult, ProviderInfo } from '../types';
+import { useState, useCallback, useRef } from 'react';
+import type { TreeNode, OpenFile, SidebarPanel, GitStatusResult, ProviderInfo, ReasoningEffort } from '../types';
 import { detectLanguage } from '../lib/utils';
 import { fs, git, ai } from '../lib/api';
 import { authenticatedFetch } from '../lib/supabase';
@@ -33,9 +33,12 @@ export interface AppState {
   aiPanelWidth: number;
   chatMessages: { role: 'user' | 'assistant'; content: string }[];
   aiLoading: boolean;
+  agentStatus: string;
   selectedProvider: string;
   selectedModel: string;
   apiKey: string;
+  reasoningEffort: ReasoningEffort;
+  creditsConsumed: number;
   providers: ProviderInfo[];
 
   // Git
@@ -55,6 +58,7 @@ export interface AppState {
 }
 
 export function useAppState() {
+  const cancelAgentRef = useRef(false);
   const [state, setState] = useState<AppState>({
     projectPath: null,
     projectTree: null,
@@ -71,9 +75,12 @@ export function useAppState() {
     aiPanelWidth: 380,
     chatMessages: [],
     aiLoading: false,
+    agentStatus: 'Ready',
     selectedProvider: 'mock',
     selectedModel: 'mock-responses',
     apiKey: '',
+    reasoningEffort: 'medium',
+    creditsConsumed: 0,
     providers: [],
     gitStatus: null,
     gitLog: [],
@@ -205,30 +212,45 @@ export function useAppState() {
   }, [update]);
 
   const sendChatMessage = useCallback(async (message: string) => {
+    cancelAgentRef.current = false;
     const newMessages = [...state.chatMessages, { role: 'user' as const, content: message }];
-    update({ chatMessages: newMessages, aiLoading: true });
+    update({ chatMessages: newMessages, aiLoading: true, agentStatus: 'Planning task' });
 
     try {
       const activeFile = state.openFiles.find(f => f.path === state.activeFile);
       const systemContent = activeFile
-        ? `You are an AI coding assistant. The user is working on a file: ${activeFile.path}\n\nCurrent file content:\n\`\`\`${activeFile.language}\n${activeFile.content.slice(0, 4000)}\n\`\`\`\n\nAnswer concisely and helpfully. Use markdown for code blocks.`
-        : 'You are an AI coding assistant. Answer concisely and helpfully.';
+        ? `You are Archon, an autonomous coding agent working on ${activeFile.path}.\n\nCurrent file:\n\`\`\`${activeFile.language}\n${activeFile.content.slice(0, 12000)}\n\`\`\`\n\nWork continuously: plan, inspect context, reason, and verify. Never ask whether to continue. End with [ARCHON_DONE] only when complete or [ARCHON_BLOCKED: reason] for a genuine blocker.`
+        : 'You are Archon, an autonomous coding agent. Work continuously: plan, analyze, verify, and continue without asking the user whether to proceed. End with [ARCHON_DONE] only when complete or [ARCHON_BLOCKED: reason] for a genuine blocker.';
 
-      const messages = [
+      let workingMessages = [
         { role: 'system' as const, content: systemContent },
         ...newMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       ];
+      const maxPasses = state.reasoningEffort === 'high' ? 12 : state.reasoningEffort === 'medium' ? 5 : 2;
+      let visibleMessages = [...newMessages];
+      let credits = state.creditsConsumed;
 
-      const response = await ai.chat(messages, {
-        provider: state.selectedProvider,
-        model: state.selectedModel,
-        apiKey: state.apiKey,
-      });
+      for (let pass = 0; pass < maxPasses && !cancelAgentRef.current; pass += 1) {
+        update({ agentStatus: pass === 0 ? 'Reasoning about the task' : `Continuing work · pass ${pass + 1}/${maxPasses}` });
+        const response = await ai.chat(workingMessages, {
+          provider: state.selectedProvider,
+          model: state.selectedModel,
+          apiKey: state.apiKey,
+          reasoningEffort: state.reasoningEffort,
+        });
+        credits += response.credit_units;
+        const cleaned = response.content.replace(/\[ARCHON_DONE\]/g, '').replace(/\[ARCHON_BLOCKED:[^\]]+\]/g, '').trim();
+        visibleMessages = [...visibleMessages, { role: 'assistant' as const, content: cleaned }];
+        update({ chatMessages: visibleMessages, creditsConsumed: credits });
 
-      update({
-        chatMessages: [...newMessages, { role: 'assistant', content: response.content }],
-        aiLoading: false,
-      });
+        if (response.content.includes('[ARCHON_DONE]') || response.content.includes('[ARCHON_BLOCKED:')) break;
+        workingMessages = [
+          ...workingMessages,
+          { role: 'assistant' as const, content: response.content },
+          { role: 'user' as const, content: 'Continue working autonomously. Re-check the task, deepen the analysis, and finish it. Do not ask me a question and do not stop at a partial answer.' },
+        ];
+      }
+      update({ aiLoading: false, agentStatus: cancelAgentRef.current ? 'Stopped by user' : 'Task finished' });
     } catch (e) {
       console.error('AI request failed:', e);
       update({
@@ -237,9 +259,15 @@ export function useAppState() {
           { role: 'assistant', content: `Error: ${e instanceof Error ? e.message : 'Request failed'}` },
         ],
         aiLoading: false,
+        agentStatus: 'Task failed',
       });
     }
-  }, [state.chatMessages, state.openFiles, state.activeFile, state.selectedProvider, state.selectedModel, state.apiKey, update]);
+  }, [state.chatMessages, state.openFiles, state.activeFile, state.selectedProvider, state.selectedModel, state.apiKey, state.reasoningEffort, state.creditsConsumed, update]);
+
+  const stopAgent = useCallback(() => {
+    cancelAgentRef.current = true;
+    update({ agentStatus: 'Stopping after current step' });
+  }, [update]);
 
   // Diff actions
   const showDiffPreview = useCallback(async (filePath: string, newContent: string) => {
@@ -307,6 +335,7 @@ export function useAppState() {
     saveAllFiles,
     refreshGit,
     sendChatMessage,
+    stopAgent,
     showDiffPreview,
     acceptDiff,
     rejectDiff,

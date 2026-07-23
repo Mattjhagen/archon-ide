@@ -61,6 +61,8 @@ export interface ChatResponse {
   content: string;
   model: string;
   provider: string;
+  reasoning_effort: ReasoningEffort;
+  credit_units: number;
   tokens_used: {
     input: number;
     output: number;
@@ -120,5 +122,6 @@ export interface TerminalSession {
 }
 
 // Provider adapter types
-export type ProviderId = 'openai' | 'anthropic' | 'ollama' | 'mock';
+export type ProviderId = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'mock';
 export type ModelId = string;
+export type ReasoningEffort = 'low' | 'medium' | 'high';

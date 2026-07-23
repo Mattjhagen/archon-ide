@@ -11,6 +11,7 @@ import type {
   ChatMessage,
   ChatResponse,
   ProviderInfo,
+  ReasoningEffort,
   SearchResult,
   DiffEntry,
 } from '../types';
@@ -104,6 +105,7 @@ export const ai = {
     maxTokens?: number;
     temperature?: number;
     apiKey?: string;
+    reasoningEffort?: ReasoningEffort;
   }) =>
     request<ChatResponse>('/ai/chat', 'POST', {
       messages,
@@ -112,6 +114,7 @@ export const ai = {
       max_tokens: options?.maxTokens,
       temperature: options?.temperature,
       api_key: options?.apiKey,
+      reasoning_effort: options?.reasoningEffort,
     }),
 };
 

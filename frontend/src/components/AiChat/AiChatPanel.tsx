@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Cpu, Copy, Check, ChevronDown, Sparkles, User } from 'lucide-react';
-import type { ProviderInfo } from '../../types';
+import { Send, Cpu, Copy, Check, ChevronDown, Sparkles, BrainCircuit, Square } from 'lucide-react';
+import type { ProviderInfo, ReasoningEffort } from '../../types';
 
 interface AiChatPanelProps {
   messages: { role: 'user' | 'assistant'; content: string }[];
@@ -13,14 +13,21 @@ interface AiChatPanelProps {
   onModelChange: (model: string) => void;
   width: number;
   activeFilePath: string | null;
+  reasoningEffort: ReasoningEffort;
+  creditsConsumed: number;
+  onReasoningEffortChange: (effort: ReasoningEffort) => void;
+  agentStatus: string;
+  onStop: () => void;
 }
 
 export function AiChatPanel({
   messages, loading, onSend, providers, selectedProvider, selectedModel,
-  onProviderChange, onModelChange, width, activeFilePath,
+  onProviderChange, onModelChange, width, activeFilePath, reasoningEffort,
+  creditsConsumed, onReasoningEffortChange, agentStatus, onStop,
 }: AiChatPanelProps) {
   const [input, setInput] = useState('');
   const [showProviderMenu, setShowProviderMenu] = useState(false);
+  const [showReasoningMenu, setShowReasoningMenu] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +54,12 @@ export function AiChatPanel({
 
   const currentProvider = providers.find(p => p.id === selectedProvider);
   const selectedModelName = currentProvider?.models.find(m => m.id === selectedModel)?.name ?? selectedModel;
+  const reasoningOptions: { id: ReasoningEffort; label: string; detail: string; multiplier: number }[] = [
+    { id: 'low', label: 'Low', detail: 'Fast, focused work', multiplier: 1 },
+    { id: 'medium', label: 'Medium', detail: 'Balanced agent work', multiplier: 2 },
+    { id: 'high', label: 'High', detail: 'Deep, long-horizon reasoning', multiplier: 4 },
+  ];
+  const currentReasoning = reasoningOptions.find(option => option.id === reasoningEffort)!;
 
   return (
     <div className="flex flex-col h-full" style={{ width, background: 'var(--bg-base)', borderLeft: '1px solid var(--border-faint)' }}>
@@ -58,7 +71,38 @@ export function AiChatPanel({
           </div>
           <span className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>AI Assistant</span>
         </div>
-        <div className="relative">
+        <div className="flex items-center gap-1">
+          <div className="relative">
+            <button
+              onClick={() => setShowReasoningMenu(!showReasoningMenu)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px]"
+              style={{ color: 'var(--text-tertiary)', background: 'var(--bg-raised)', border: '1px solid var(--border-faint)' }}
+            >
+              <BrainCircuit size={11} style={{ color: 'var(--accent-hover)' }} />
+              {currentReasoning.label} · {currentReasoning.multiplier}×
+              <ChevronDown size={9} />
+            </button>
+            {showReasoningMenu && (
+              <div className="absolute right-0 top-full mt-1 p-1 min-w-[230px]" style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 60 }}>
+                {reasoningOptions.map(option => (
+                  <button
+                    key={option.id}
+                    onClick={() => { onReasoningEffortChange(option.id); setShowReasoningMenu(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg"
+                    style={{ background: option.id === reasoningEffort ? 'var(--accent-subtle)' : 'transparent', color: option.id === reasoningEffort ? 'var(--accent-hover)' : 'var(--text-secondary)' }}
+                  >
+                    <span className="w-8 text-[11px] font-semibold">{option.label}</span>
+                    <span className="flex-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{option.detail}</span>
+                    <span className="text-[10px] font-mono">{option.multiplier}×</span>
+                  </button>
+                ))}
+                <div className="px-3 py-2 text-[9px]" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-faint)' }}>
+                  Higher effort permits more thinking and tool work. Actual provider tokens still vary.
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="relative">
           <button
             onClick={() => setShowProviderMenu(!showProviderMenu)}
             className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px]"
@@ -91,6 +135,7 @@ export function AiChatPanel({
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -174,6 +219,17 @@ export function AiChatPanel({
 
       {/* Input */}
       <div className="px-3 py-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border-faint)' }}>
+        {loading && (
+          <div className="flex items-center justify-between px-1 pb-2">
+            <span className="text-[10px] flex items-center gap-1.5" style={{ color: 'var(--accent-hover)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)', animation: 'pulse-dot 1.2s ease-in-out infinite' }} />
+              {agentStatus}
+            </span>
+            <button onClick={onStop} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px]" style={{ color: 'var(--danger)', background: 'var(--bg-raised)', border: '1px solid var(--border-faint)' }}>
+              <Square size={9} fill="currentColor" /> Stop
+            </button>
+          </div>
+        )}
         <div className="flex gap-2 p-2 rounded-xl" style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-default)', transition: 'border-color var(--t-fast), box-shadow var(--t-fast)' }}
           onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-muted)'; }}
           onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.boxShadow = 'none'; } }}
@@ -186,7 +242,7 @@ export function AiChatPanel({
           </button>
         </div>
         <div className="text-center mt-1.5">
-          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Enter to send · Shift+Enter for new line</span>
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Enter to send · Shift+Enter for new line · {creditsConsumed} credits used</span>
         </div>
       </div>
     </div>
