@@ -438,7 +438,7 @@ kbd {
 }
 
 /* First-run setup */
-.setup-shell { min-height: 100vh; width: 100%; overflow: auto; position: relative; background: var(--bg-void); color: var(--text-primary); display: flex; flex-direction: column; }
+.setup-shell { height: 100vh; height: 100dvh; min-height: 0; width: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; position: relative; background: var(--bg-void); color: var(--text-primary); display: flex; flex-direction: column; }
 .setup-glow { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% -10%, var(--accent-subtle), transparent 42%); }
 :root[data-appearance='paper'] .setup-glow { background: radial-gradient(circle at 50% -10%, rgba(23,105,224,.08), transparent 44%); }
 .setup-header { position: relative; z-index: 1; height: 82px; padding: 0 42px; display: flex; align-items: center; gap: 13px; border-bottom: 1px solid var(--border-faint); }
