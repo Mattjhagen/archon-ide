@@ -31,7 +31,7 @@ export const integrations: IntegrationDefinition[] = [
     description: 'Import repositories, create branches, push commits, and open pull requests.',
     capabilities: ['Repositories', 'Pull requests', 'Issues'],
     auth: 'oauth',
-    availability: 'available',
+    availability: 'next',
     accent: '#f0f2f5',
   },
   {
@@ -108,8 +108,7 @@ export const integrations: IntegrationDefinition[] = [
     description: 'Bring selected ChatGPT, Claude, Gemini, or Markdown conversations into a task.',
     capabilities: ['JSON exports', 'Markdown', 'Local parsing'],
     auth: 'import',
-    availability: 'next',
+    availability: 'available',
     accent: '#a78bfa',
   },
 ];
-
