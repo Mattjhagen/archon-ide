@@ -114,8 +114,9 @@ final class CodeTextView: UITextView {
         
         self.inputAccessoryView = keyboardToolbar
 
-        backgroundColor = UIColor.systemBackground
-        textColor = UIColor.label
+        backgroundColor = IDETheme.UIKitColors.base
+        textColor = IDETheme.UIKitColors.text
+        tintColor = IDETheme.UIKitColors.accent
         font = codeFont
         autocorrectionType = .no
         autocapitalizationType = .none
@@ -156,10 +157,10 @@ final class CodeTextView: UITextView {
             height: bounds.height
         )
 
-        context.setFillColor(UIColor.secondarySystemBackground.cgColor)
+        context.setFillColor(IDETheme.UIKitColors.surface.cgColor)
         context.fill(gutterRect)
 
-        context.setStrokeColor(UIColor.separator.cgColor)
+        context.setStrokeColor(IDETheme.UIKitColors.border.cgColor)
         context.setLineWidth(1)
         context.move(to: CGPoint(x: gutterWidth, y: 0))
         context.addLine(to: CGPoint(x: gutterWidth, y: bounds.height))
@@ -194,7 +195,7 @@ final class CodeTextView: UITextView {
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
-            .foregroundColor: UIColor.secondaryLabel
+            .foregroundColor: IDETheme.UIKitColors.textMuted
         ]
 
         while glyphIndex < NSMaxRange(glyphRange) {
@@ -231,7 +232,7 @@ final class CodeTextView: UITextView {
 
         let baseAttributes: [NSAttributedString.Key: Any] = [
             .font: codeFont,
-            .foregroundColor: UIColor.label
+            .foregroundColor: IDETheme.UIKitColors.text
         ]
 
         textStorage.beginEditing()
@@ -257,32 +258,32 @@ final class CodeTextView: UITextView {
         applyRegex(
             #"\b(const|let|var|function|return|if|else|for|while|async|await|import|from|export|class|new|throw|try|catch)\b"#,
             in: source,
-            color: .systemPurple
+            color: IDETheme.UIKitColors.keyword
         )
 
-        applyRegex(#""(?:\\.|[^"])*"|'(?:\\.|[^'])*'|`(?:\\.|[^`])*`"#, in: source, color: .systemGreen)
-        applyRegex(#"//.*|/\*[\s\S]*?\*/"#, in: source, color: .systemGray)
-        applyRegex(#"\b\d+(\.\d+)?\b"#, in: source, color: .systemOrange)
+        applyRegex(#""(?:\\.|[^"])*"|'(?:\\.|[^'])*'|`(?:\\.|[^`])*`"#, in: source, color: IDETheme.UIKitColors.string)
+        applyRegex(#"//.*|/\*[\s\S]*?\*/"#, in: source, color: IDETheme.UIKitColors.comment)
+        applyRegex(#"\b\d+(\.\d+)?\b"#, in: source, color: IDETheme.UIKitColors.number)
     }
 
     private func highlightSwift(_ source: String, range: NSRange) {
         applyRegex(
             #"\b(import|let|var|func|return|if|else|guard|for|while|switch|case|struct|class|enum|protocol|extension|async|await|throws|try|private|public|internal)\b"#,
             in: source,
-            color: .systemPurple
+            color: IDETheme.UIKitColors.keyword
         )
 
-        applyRegex(#""(?:\\.|[^"])*""#, in: source, color: .systemGreen)
-        applyRegex(#"//.*|/\*[\s\S]*?\*/"#, in: source, color: .systemGray)
-        applyRegex(#"\b(true|false|nil)\b"#, in: source, color: .systemOrange)
-        applyRegex(#"\b\d+(\.\d+)?\b"#, in: source, color: .systemOrange)
+        applyRegex(#""(?:\\.|[^"])*""#, in: source, color: IDETheme.UIKitColors.string)
+        applyRegex(#"//.*|/\*[\s\S]*?\*/"#, in: source, color: IDETheme.UIKitColors.comment)
+        applyRegex(#"\b(true|false|nil)\b"#, in: source, color: IDETheme.UIKitColors.number)
+        applyRegex(#"\b\d+(\.\d+)?\b"#, in: source, color: IDETheme.UIKitColors.number)
     }
 
     private func highlightHTML(_ source: String, range: NSRange) {
-        applyRegex(#"</?[A-Za-z][^>]*>"#, in: source, color: .systemPurple)
-        applyRegex(#"\b[A-Za-z\-]+(?==)"#, in: source, color: .systemBlue)
-        applyRegex(#""[^"]*"|'[^']*'"#, in: source, color: .systemGreen)
-        applyRegex(#"<!--[\s\S]*?-->"#, in: source, color: .systemGray)
+        applyRegex(#"</?[A-Za-z][^>]*>"#, in: source, color: IDETheme.UIKitColors.keyword)
+        applyRegex(#"\b[A-Za-z\-]+(?==)"#, in: source, color: IDETheme.UIKitColors.attribute)
+        applyRegex(#""[^"]*"|'[^']*'"#, in: source, color: IDETheme.UIKitColors.string)
+        applyRegex(#"<!--[\s\S]*?-->"#, in: source, color: IDETheme.UIKitColors.comment)
     }
 
     private func applyRegex(_ pattern: String, in source: String, color: UIColor) {
