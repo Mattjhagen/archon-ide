@@ -9,7 +9,7 @@ class MockAPIClient: APIClientProtocol {
     var events: [String: [TaskEvent]] = [
         "task-2": [
             TaskEvent(id: "evt-1", taskId: "task-2", sequence: 1, timestamp: Date().addingTimeInterval(-60), type: .planning, content: "Planning accessibility updates", metadata: nil),
-            TaskEvent(id: "evt-2", taskId: "task-2", sequence: 2, timestamp: Date().addingTimeInterval(-30), type: .toolCall, content: "Searching for missing labels", metadata: ["tool": "grep_search"])
+            TaskEvent(id: "evt-2", taskId: "task-2", sequence: 2, timestamp: Date().addingTimeInterval(-30), type: .toolCall, content: "Searching for missing labels", metadata: ["tool": AnyCodable("grep_search")])
         ]
     ]
     
