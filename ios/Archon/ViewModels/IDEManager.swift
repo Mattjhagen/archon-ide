@@ -16,11 +16,18 @@ class IDEManager: ObservableObject {
     
     func selectFile(_ file: FileNode) {
         guard file.type == .file else { return }
-        
+
         if !openFiles.contains(where: { $0.id == file.id }) {
             openFiles.append(file)
         }
         selectedFile = file
+    }
+
+    func closeFile(id: UUID) {
+        openFiles.removeAll { $0.id == id }
+        if selectedFile?.id == id {
+            selectedFile = openFiles.last
+        }
     }
     
     func updateFileContent(id: UUID, newContent: String) {
