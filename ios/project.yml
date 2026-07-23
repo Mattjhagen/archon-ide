@@ -27,7 +27,7 @@ targets:
         MARKETING_VERSION: 1.0.0
         CURRENT_PROJECT_VERSION: 1
         DEVELOPMENT_TEAM: "" # Set locally by developer
-        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        INFOPLIST_KEY_SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - archon

@@ -14,9 +14,8 @@ class AuthenticatedAPIClient: APIClientProtocol {
         self.urlSession = urlSession
     }
     
-    private func getAuthToken() -> String? {
-        // In a real app, securely retrieve this from Keychain
-        return UserDefaults.standard.string(forKey: "supabase_access_token")
+    private func getAuthToken() async throws -> String {
+        return try await supabase.auth.session.accessToken
     }
     
     private func performRequest<T: Decodable>(url: URL, method: String, retryCount: Int = 3) async throws -> T {
@@ -24,9 +23,8 @@ class AuthenticatedAPIClient: APIClientProtocol {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        if let token = getAuthToken() {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
+        let token = try await getAuthToken()
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
         var attempt = 0
         while attempt < retryCount {
@@ -38,7 +36,7 @@ class AuthenticatedAPIClient: APIClientProtocol {
             
             if (200...299).contains(httpResponse.statusCode) {
                 let decoder = JSONDecoder()
-                // Configure decoder for date formats if needed
+                decoder.keyDecodingStrategy = .convertFromSnakeCase // Maps Rust snake_case to Swift camelCase
                 return try decoder.decode(T.self, from: data)
             } else if method == "GET" && attempt < retryCount - 1 && httpResponse.statusCode >= 500 {
                 // Retry only safe GET requests on server errors
@@ -73,9 +71,9 @@ class AuthenticatedAPIClient: APIClientProtocol {
         let url = Environment.current.apiBaseURL.appendingPathComponent("agent/tasks/\(id)/cancel")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        if let token = getAuthToken() {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
+        
+        let token = try await getAuthToken()
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
         let (_, response) = try await urlSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
