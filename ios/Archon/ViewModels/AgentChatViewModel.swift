@@ -21,11 +21,14 @@ final class AgentChatViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let apiClient: APIClientProtocol
+    private let sleeper: SleeperProtocol
     private var detail: TaskDetailViewModel?
     private var detailSubscriptions = Set<AnyCancellable>()
 
-    init(apiClient: APIClientProtocol = AuthenticatedAPIClient()) {
+    init(apiClient: APIClientProtocol = AuthenticatedAPIClient(),
+         sleeper: SleeperProtocol = DefaultSleeper()) {
         self.apiClient = apiClient
+        self.sleeper = sleeper
     }
 
     /// Providers the app can actually start tasks with. iOS never
@@ -116,7 +119,7 @@ final class AgentChatViewModel: ObservableObject {
             errorMessage = nil
             attach(taskId: created.id)
         } catch let apiError as APIError {
-            errorMessage = apiError.message
+            errorMessage = apiError.errorDescription ?? apiError.message
         } catch {
             errorMessage = "Could not start task: \(error.localizedDescription)"
         }
@@ -132,7 +135,7 @@ final class AgentChatViewModel: ObservableObject {
         detail?.stopPolling()
         detailSubscriptions.removeAll()
 
-        let vm = TaskDetailViewModel(taskId: taskId, apiClient: apiClient)
+        let vm = TaskDetailViewModel(taskId: taskId, apiClient: apiClient, sleeper: sleeper)
         detail = vm
 
         vm.$task
