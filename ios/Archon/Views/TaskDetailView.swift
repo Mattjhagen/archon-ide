@@ -59,10 +59,6 @@ struct TaskDetailView: View {
             Text(task.title)
                 .font(.title2.bold())
             
-            Text(task.description)
-                .font(.body)
-                .foregroundStyle(.secondary)
-            
             HStack(spacing: 16) {
                 Label("\(task.currentStep)/\(task.maxSteps)", systemImage: "arrow.triangle.branch")
                 Label("\(task.creditsUsed) cr", systemImage: "bolt.fill")
