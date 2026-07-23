@@ -49,7 +49,12 @@ struct WelcomeScreen: View {
             
             // Sign in Button
             Button(action: {
-                authManager.signInWithGitHub()
+                #if DEBUG
+                authManager.signInWithGitHubMock()
+                #else
+                // Real OAuth Trigger (e.g. ASWebAuthenticationSession)
+                print("Trigger real OAuth flow here")
+                #endif
             }) {
                 HStack {
                     Image(systemName: "chevron.right.circle.fill")
