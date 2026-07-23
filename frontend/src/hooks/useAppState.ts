@@ -226,7 +226,8 @@ export function useAppState() {
         { role: 'system' as const, content: systemContent },
         ...newMessages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       ];
-      const maxPasses = state.reasoningEffort === 'high' ? 12 : state.reasoningEffort === 'medium' ? 5 : 2;
+      const isDemoMode = state.selectedProvider === 'mock';
+      const maxPasses = isDemoMode ? 1 : state.reasoningEffort === 'high' ? 12 : state.reasoningEffort === 'medium' ? 5 : 2;
       let visibleMessages = [...newMessages];
       let credits = state.creditsConsumed;
 
@@ -250,7 +251,14 @@ export function useAppState() {
           { role: 'user' as const, content: 'Continue working autonomously. Re-check the task, deepen the analysis, and finish it. Do not ask me a question and do not stop at a partial answer.' },
         ];
       }
-      update({ aiLoading: false, agentStatus: cancelAgentRef.current ? 'Stopped by user' : 'Task finished' });
+      update({
+        aiLoading: false,
+        agentStatus: cancelAgentRef.current
+          ? 'Stopped by user'
+          : isDemoMode
+            ? 'Demo complete — connect a model for real analysis'
+            : 'Task finished',
+      });
     } catch (e) {
       console.error('AI request failed:', e);
       update({

@@ -443,77 +443,7 @@ async fn chat_mock(
     model: &str,
     effort: ReasoningEffort,
 ) -> HttpResponse {
-    let last_msg = messages.last().map(|m| m.content.as_str()).unwrap_or("");
-
-    let response = if last_msg.to_lowercase().contains("explain") {
-        format!(
-            "## Code Explanation\n\nThis code implements the following:\n\n\
-            1. **Data Flow**: The data enters through the input handler and is processed \
-            through the transformation pipeline.\n\n\
-            2. **Error Handling**: Errors are caught and propagated with context.\n\n\
-            3. **Key Pattern**: Uses the observer pattern for reactive updates.\n\n\
-            ```typescript\n\
-            // Example usage\n\
-            const result = await processData(input);\n\
-            console.log(result);\n\
-            ```\n\n\
-            **Potential improvements:**\n\
-            - Consider adding retry logic for transient failures\n\
-            - The error messages could be more descriptive\n\
-            - Type safety could be improved with generics"
-        )
-    } else if last_msg.to_lowercase().contains("fix") || last_msg.to_lowercase().contains("bug") {
-        format!(
-            "## Suggested Fix\n\n\
-            I found the issue. Here's the corrected code:\n\n\
-            ```typescript\n\
-            // Before (buggy)\n\
-            // const data = items.map(i => i.value);\n\n\
-            // After (fixed)\n\
-            const data = items\n\
-              .filter(i => i.value !== undefined)\n\
-              .map(i => i.value!);\n\
-            ```\n\n\
-            **What changed:**\n\
-            - Added filter to exclude undefined values\n\
-            - Used non-null assertion after filtering"
-        )
-    } else if last_msg.to_lowercase().contains("write") || last_msg.to_lowercase().contains("create") {
-        format!(
-            "## Generated Code\n\n\
-            ```typescript\n\
-            interface Config {{\n\
-              host: string;\n\
-              port: number;\n\
-              debug: boolean;\n\
-            }}\n\n\
-            function loadConfig(path: string): Config {{\n\
-              const raw = Deno.readTextFileSync(path);\n\
-              const config = JSON.parse(raw) as Partial<Config>;\n\
-              return {{\n\
-                host: config.host ?? 'localhost',\n\
-                port: config.port ?? 3000,\n\
-                debug: config.debug ?? false,\n\
-              }};\n\
-            }}\n\
-            ```\n\n\
-            This creates a type-safe config loader with defaults."
-        )
-    } else {
-        format!(
-            "I understand your question about: *\"{}\"*\n\n\
-            Here's my analysis:\n\n\
-            1. **Context**: Based on the code you've shared, this appears to be part of \
-            a larger system handling data processing.\n\n\
-            2. **Recommendation**: I'd suggest breaking this into smaller, testable functions.\n\n\
-            3. **Next Steps**:\n\
-               - Add unit tests for the core logic\n\
-               - Consider adding input validation\n\
-               - Document the expected behavior\n\n\
-            Demo mode cannot inspect or change your workspace. Add a provider API key in Settings to start a real agent task.",
-            last_msg.chars().take(100).collect::<String>()
-        )
-    };
+    let response = "## Demo mode\n\nI haven't read your repository, so I won't invent a summary, diagnosis, or code change.\n\nTo get a useful answer:\n1. Select OpenAI, Anthropic, Gemini, or Ollama in Settings and add a key when required.\n2. Open or connect a workspace.\n3. Use **Agent Tasks** for repository investigation, edits, and verification; use **Chat** for focused questions about an open file.\n\nA real Archon task reports the files it inspected, actions it took, verification it ran, and any genuine blocker.".to_string();
 
     let input_tokens = messages.iter().map(|m| m.content.len() / 4).sum::<usize>();
     let output_tokens = response.len() / 4;
