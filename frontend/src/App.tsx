@@ -142,12 +142,14 @@ function App() {
             providers={app.state.providers}
             selectedProvider={app.state.selectedProvider}
             selectedModel={app.state.selectedModel}
+            reasoningEffort={app.state.reasoningEffort}
             apiKey={app.state.apiKey}
             appearance={appearance}
             onAppearanceChange={setAppearance}
             onApiKeyChange={(apiKey) => app.update({ apiKey })}
             onProviderChange={(p) => app.update({ selectedProvider: p })}
             onModelChange={(m) => app.update({ selectedModel: m })}
+            onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
             onClose={() => setShowSettings(false)}
           />
         )}
@@ -259,12 +261,14 @@ function App() {
           providers={app.state.providers}
           selectedProvider={app.state.selectedProvider}
           selectedModel={app.state.selectedModel}
+          reasoningEffort={app.state.reasoningEffort}
           apiKey={app.state.apiKey}
           appearance={appearance}
           onAppearanceChange={setAppearance}
           onApiKeyChange={(apiKey) => app.update({ apiKey })}
           onProviderChange={(p) => app.update({ selectedProvider: p })}
           onModelChange={(m) => app.update({ selectedModel: m })}
+          onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
           onClose={() => setShowSettings(false)}
         />
       )}

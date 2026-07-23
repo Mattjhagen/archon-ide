@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { X, Key, Cpu, ExternalLink, Palette, ShieldCheck, Boxes, BrainCircuit } from 'lucide-react';
 import type { ProviderInfo } from '../../types';
+import type { ReasoningEffort } from '../../types';
 import { appearances, type Appearance } from '../../lib/appearance';
 import { IntegrationsPanel } from './IntegrationsPanel';
+import { ModelCapabilityCard } from './ModelCapabilityCard';
 
 interface SettingsModalProps {
   providers: ProviderInfo[];
   selectedProvider: string;
   selectedModel: string;
+  reasoningEffort: ReasoningEffort;
   onProviderChange: (provider: string) => void;
   onModelChange: (model: string) => void;
+  onReasoningEffortChange: (effort: ReasoningEffort) => void;
   apiKey: string;
   appearance: Appearance;
   onAppearanceChange: (appearance: Appearance) => void;
@@ -20,7 +24,7 @@ interface SettingsModalProps {
 type SettingsTab = 'models' | 'integrations' | 'appearance';
 
 export function SettingsModal({
-  providers, selectedProvider, selectedModel, apiKey, appearance, onProviderChange, onModelChange, onAppearanceChange, onApiKeyChange, onClose,
+  providers, selectedProvider, selectedModel, reasoningEffort, apiKey, appearance, onProviderChange, onModelChange, onReasoningEffortChange, onAppearanceChange, onApiKeyChange, onClose,
 }: SettingsModalProps) {
   const [tab, setTab] = useState<SettingsTab>('models');
 
@@ -68,6 +72,7 @@ export function SettingsModal({
                   </div>
                 ))}
               </div>
+              <ModelCapabilityCard provider={selectedProvider} model={selectedModel} effort={reasoningEffort} onEffortChange={onReasoningEffortChange} />
               <div className="credential-card">
                 <div><Key size={14} /><span><strong>Session-only API key</strong><small>Sent with model requests and cleared when this tab closes.</small></span></div>
                 <input type="password" value={apiKey} onChange={event => onApiKeyChange(event.target.value)} placeholder={selectedProvider === 'anthropic' ? 'sk-ant-…' : selectedProvider === 'gemini' ? 'AIza…' : 'sk-proj-…'} />
