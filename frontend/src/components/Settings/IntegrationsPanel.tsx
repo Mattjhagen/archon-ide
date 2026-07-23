@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Check, ChevronRight, Import, LockKeyhole, PlugZap, Search } from 'lucide-react';
 import { integrationCategories, integrations, type IntegrationCategory } from '../../lib/integrations';
+import { ContextImportDialog } from './ContextImportDialog';
 
 type CategoryFilter = 'all' | IntegrationCategory;
 
 export function IntegrationsPanel() {
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [query, setQuery] = useState('');
+  const [showContextImport, setShowContextImport] = useState(false);
   const filtered = useMemo(() => integrations.filter(item => {
     const categoryMatch = category === 'all' || item.category === category;
     const search = `${item.name} ${item.description} ${item.capabilities.join(' ')}`.toLowerCase();
@@ -37,13 +39,14 @@ export function IntegrationsPanel() {
 
       <div className="integration-grid">
         {filtered.map(item => {
-          const live = item.availability === 'available';
+          const foundationReady = item.availability === 'available';
+          const canReviewImport = item.id === 'context-import';
           return (
             <article className="integration-card" key={item.id}>
               <div className="integration-card-top">
                 <div className="integration-mark" style={{ '--connector-accent': item.accent } as React.CSSProperties}>{item.monogram}</div>
                 <div className={`integration-badge ${item.availability}`}>
-                  {live ? <><Check size={9} /> Foundation ready</> : item.availability === 'next' ? 'Up next' : 'Planned'}
+                  {foundationReady ? <><Check size={9} /> Foundation ready</> : item.availability === 'next' ? 'Up next' : 'Planned'}
                 </div>
               </div>
               <h4>{item.name}</h4>
@@ -51,10 +54,10 @@ export function IntegrationsPanel() {
               <div className="integration-capabilities">
                 {item.capabilities.map(capability => <span key={capability}>{capability}</span>)}
               </div>
-              <button className="integration-action" disabled={!live}>
+              <button className="integration-action" disabled={!canReviewImport} onClick={() => canReviewImport && setShowContextImport(true)}>
                 {item.auth === 'import' ? <Import size={12} /> : <PlugZap size={12} />}
-                {live ? 'Configure' : item.availability === 'next' ? 'Coming next' : 'On roadmap'}
-                {live && <ChevronRight size={12} />}
+                {canReviewImport ? 'Review local export' : foundationReady ? 'Secure access in build' : item.availability === 'next' ? 'Coming next' : 'On roadmap'}
+                {canReviewImport && <ChevronRight size={12} />}
               </button>
             </article>
           );
@@ -65,6 +68,7 @@ export function IntegrationsPanel() {
       <div className="integration-note">
         “Foundation ready” means the product already uses this service or has an adapter boundary. Repository/project authorization and agent tool access remain disabled until the secure server-side runtime is merged.
       </div>
+      {showContextImport && <ContextImportDialog onClose={() => setShowContextImport(false)} />}
     </section>
   );
 }
