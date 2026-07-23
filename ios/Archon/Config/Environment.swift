@@ -17,16 +17,15 @@ enum Environment {
         switch self {
         case .development: return URL(string: "http://localhost:54321")!
         case .staging: return URL(string: "https://staging.relayapp.pro")!
-        case .production: return URL(string: "https://app.relayapp.pro")!
+        case .production: return URL(string: "https://ibhrmenurandwvvebqfb.supabase.co")!
         }
     }
     
     var supabaseAnonKey: String {
-        // Read from Xcode environment variables or xcconfig to avoid committing secrets
-        return ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"] ?? "MOCK_KEY"
+        return Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as? String ?? "MOCK_KEY"
     }
     
     var apiBaseURL: URL {
-        supabaseURL.appendingPathComponent("api")
+        URL(string: "https://app.relayapp.pro/api")!
     }
 }

@@ -47,23 +47,18 @@ struct WelcomeScreen: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("GitHub sign-in securely authenticates your identity. It does not grant access to your repositories until you explicitly connect a workspace later.")
             
+            if let authError = authManager.authError {
+                Text(authError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                    .accessibilityLabel("Authentication Error: \(authError)")
+            }
+            
             // Sign in Button
             Button(action: {
-                Task {
-                    do {
-                        let signInURL = try await authManager.signInWithGitHub()
-                        let session = ASWebAuthenticationSession(url: signInURL, callbackURLScheme: "archon") { callbackURL, error in
-                            guard let callbackURL = callbackURL, error == nil else { return }
-                            Task {
-                                try? await authManager.handleOAuthCallback(url: callbackURL)
-                            }
-                        }
-                        session.presentationContextProvider = AuthPresentationContext.shared
-                        session.start()
-                    } catch {
-                        print("Auth failed: \(error)")
-                    }
-                }
+                authManager.startOAuthFlow()
             }) {
                 HStack {
                     Image(systemName: "chevron.right.circle.fill")
@@ -80,14 +75,7 @@ struct WelcomeScreen: View {
         // Support Dynamic Type and Reduced Motion
         .dynamicTypeSize(.xSmall ... .accessibility3)
         .animation(.easeInOut, value: authManager.isSessionExpired)
-    }
-}
-
-// Required for ASWebAuthenticationSession
-class AuthPresentationContext: NSObject, ASWebAuthenticationPresentationContextProviding {
-    static let shared = AuthPresentationContext()
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return ASPresentationAnchor()
+        .animation(.easeInOut, value: authManager.authError != nil)
     }
 }
 
