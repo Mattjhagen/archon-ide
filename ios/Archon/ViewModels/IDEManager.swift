@@ -7,8 +7,14 @@ class IDEManager: ObservableObject {
     @Published var selectedFile: FileNode?
     @Published var openFiles: [FileNode] = []
     
+    private var appliedEditEventIds = Set<String>()
+    
     // Agent Chat State
-    @Published var agentMessages: [TaskEvent] = []
+    @Published var agentMessages: [TaskEvent] = [] {
+        didSet {
+            processNewAgentEvents()
+        }
+    }
     
     init() {
         self.fileTree = FileNode.load()
@@ -63,6 +69,50 @@ class IDEManager: ObservableObject {
         // Update open files array
         if let index = openFiles.firstIndex(where: { $0.id == id }) {
             openFiles[index].content = newContent
+        }
+    }
+    
+    private func processNewAgentEvents() {
+        for event in agentMessages {
+            if event.type == .fileEdit && !appliedEditEventIds.contains(event.id) {
+                appliedEditEventIds.insert(event.id)
+                applyFileEdit(event)
+            }
+        }
+    }
+    
+    private func applyFileEdit(_ event: TaskEvent) {
+        guard let metadata = event.metadata,
+              let pathValue = metadata["path"]?.value as? String,
+              let contentValue = metadata["content"]?.value as? String else { return }
+        
+        let fileName = (pathValue as NSString).lastPathComponent
+        
+        var foundId: UUID? = nil
+        func search(nodes: [FileNode]) {
+            for node in nodes {
+                if node.name == fileName {
+                    foundId = node.id
+                    return
+                }
+                if let children = node.children {
+                    search(nodes: children)
+                }
+            }
+        }
+        search(nodes: fileTree)
+        
+        if let id = foundId {
+            updateFileContent(id: id, newContent: contentValue)
+        } else {
+            let newFile = FileNode(name: fileName, type: .file, content: contentValue)
+            fileTree.append(newFile)
+            FileNode.save(fileTree)
+            
+            // Auto-select if nothing is open
+            if selectedFile == nil {
+                selectFile(newFile)
+            }
         }
     }
 }
