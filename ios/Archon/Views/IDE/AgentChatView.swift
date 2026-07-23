@@ -5,6 +5,7 @@ struct AgentChatView: View {
     @StateObject private var viewModel = AgentChatViewModel()
 
     @State private var inputText = ""
+    @State private var isEditingWorkspacePath = false
     @AppStorage("archon.agent.workspacePath") private var workspacePath = ""
 
     var body: some View {
@@ -61,11 +62,16 @@ struct AgentChatView: View {
 
     private var providerPicker: some View {
         Menu {
-            ForEach(viewModel.usableProviders) { provider in
-                ForEach(provider.models, id: \.id) { model in
-                    Button("\(provider.name) — \(model.name)") {
-                        viewModel.selectedProviderId = provider.id
-                        viewModel.selectedModelId = model.id
+            // These are providers configured on the Archon server —
+            // not the user's own credentials. The app cannot accept,
+            // store, or use a personal provider key.
+            Section("Server-configured models") {
+                ForEach(viewModel.usableProviders) { provider in
+                    ForEach(provider.models, id: \.id) { model in
+                        Button("\(provider.name) — \(model.name)") {
+                            viewModel.selectedProviderId = provider.id
+                            viewModel.selectedModelId = model.id
+                        }
                     }
                 }
             }
@@ -86,12 +92,12 @@ struct AgentChatView: View {
             .background(IDETheme.elevated)
             .clipShape(Capsule())
         }
-        .accessibilityLabel("Choose provider and model. Current: \(selectedModelLabel)")
+        .accessibilityLabel("Server-configured models. Current: \(selectedModelLabel)")
         .ideTouchTarget()
     }
 
     private var selectedModelLabel: String {
-        guard let provider = viewModel.selectedProvider else { return "Choose model" }
+        guard let provider = viewModel.selectedProvider else { return "Server-configured models" }
         let model = provider.models.first { $0.id == viewModel.selectedModelId }
         return model.map { "\(provider.name) · \($0.name)" } ?? provider.name
     }
@@ -219,8 +225,10 @@ struct AgentChatView: View {
 
     private var composer: some View {
         VStack(spacing: 8) {
-            if workspacePath.isEmpty {
+            if workspacePath.isEmpty || isEditingWorkspacePath {
                 workspacePathField
+            } else {
+                workspaceSummaryRow
             }
 
             HStack(spacing: 8) {
@@ -274,22 +282,63 @@ struct AgentChatView: View {
             && viewModel.selectedProviderId != nil
     }
 
+    // Advanced, temporary workflow: tasks run in a directory that
+    // already exists on the Archon server. This is NOT a provisioned,
+    // isolated cloud workspace — that capability doesn't exist yet,
+    // and the UI must not promise it.
     private var workspacePathField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "folder.badge.gearshape")
-                .font(.caption)
-                .foregroundStyle(IDETheme.textSub)
-            TextField("Server workspace path (required)", text: $workspacePath)
-                .font(.caption)
-                .fontDesign(.monospaced)
-                .foregroundStyle(IDETheme.text)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Image(systemName: "folder.badge.gearshape")
+                    .font(.caption)
+                    .foregroundStyle(IDETheme.textSub)
+                TextField("Server directory path (advanced)", text: $workspacePath)
+                    .font(.caption)
+                    .fontDesign(.monospaced)
+                    .foregroundStyle(IDETheme.text)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .onSubmit { isEditingWorkspacePath = false }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(IDETheme.elevated)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            Text("Advanced: tasks run in this existing directory on the Archon server. Isolated cloud workspaces are not available yet.")
+                .font(.caption2)
+                .fontDesign(.rounded)
+                .foregroundStyle(IDETheme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(IDETheme.elevated)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .accessibilityHint("Tasks run against this directory on the Archon server.")
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Advanced setting. Tasks run in this existing directory on the Archon server, not an isolated cloud workspace.")
+    }
+
+    private var workspaceSummaryRow: some View {
+        Button {
+            isEditingWorkspacePath = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "externaldrive.connected.to.line.below")
+                    .font(.caption2)
+                    .foregroundStyle(IDETheme.textSub)
+                Text(workspacePath)
+                    .font(.caption2)
+                    .fontDesign(.monospaced)
+                    .foregroundStyle(IDETheme.textSub)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                Spacer()
+                Text("Change")
+                    .font(.caption2.weight(.semibold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(IDETheme.accent)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .accessibilityLabel("Server directory: \(workspacePath). Advanced setting, tap to change.")
+        .ideTouchTarget()
     }
 }
