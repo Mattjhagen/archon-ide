@@ -49,7 +49,14 @@ struct CreateTaskRequest: Encodable {
     let workspacePath: String
 }
 
-struct APIError: Codable, Error {
+struct APIError: Codable, LocalizedError {
     let message: String
     let code: Int?
+    
+    var errorDescription: String? {
+        if let code = code {
+            return "\(message) (HTTP \(code))"
+        }
+        return message
+    }
 }
