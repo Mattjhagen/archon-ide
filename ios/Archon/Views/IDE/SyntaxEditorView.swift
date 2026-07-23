@@ -90,10 +90,6 @@ final class CodeTextView: UITextView {
     private let gutterWidth: CGFloat = 52
     private let codeFont = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
 
-    override var inputAccessoryView: UIView? {
-        keyboardToolbar
-    }
-
     private lazy var keyboardToolbar: UIToolbar = {
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
@@ -113,6 +109,8 @@ final class CodeTextView: UITextView {
 
     init() {
         super.init(frame: .zero, textContainer: nil)
+        
+        self.inputAccessoryView = keyboardToolbar
 
         backgroundColor = UIColor.systemBackground
         textColor = UIColor.label
