@@ -10,7 +10,7 @@ class TaskInboxViewModel: ObservableObject {
     
     private let apiClient: APIClientProtocol
     
-    init(apiClient: APIClientProtocol = MockAPIClient()) {
+    init(apiClient: APIClientProtocol = AuthenticatedAPIClient()) {
         self.apiClient = apiClient
     }
     
@@ -25,7 +25,7 @@ class TaskInboxViewModel: ObservableObject {
             self.recentTasks = tasks.filter { $0.status == .completed || $0.status == .cancelled }
             
         } catch {
-            self.errorMessage = "Failed to load tasks. Please pull to refresh."
+            self.errorMessage = "Failed to load tasks: \(error.localizedDescription)"
         }
         isLoading = false
     }
