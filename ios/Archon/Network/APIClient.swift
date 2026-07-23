@@ -29,6 +29,8 @@ protocol APIClientProtocol {
     func getTaskDetails(id: String) async throws -> ArchonTask
     func getTaskEvents(id: String) async throws -> [TaskEvent]
     func cancelTask(id: String) async throws
+    func fetchProviders() async throws -> [ProviderMetadata]
+    func createTask(_ request: CreateTaskRequest) async throws -> ArchonTask
 }
 
 class AuthenticatedAPIClient: APIClientProtocol {
@@ -42,11 +44,12 @@ class AuthenticatedAPIClient: APIClientProtocol {
         return try await supabase.auth.session.accessToken
     }
     
-    private func performRequest<T: Decodable>(url: URL, method: String, retryCount: Int = 3) async throws -> T {
+    private func performRequest<T: Decodable>(url: URL, method: String, body: Data? = nil, retryCount: Int = 3) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+        request.httpBody = body
+
         let token = try await getAuthToken()
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
@@ -92,6 +95,20 @@ class AuthenticatedAPIClient: APIClientProtocol {
         return try await performRequest(url: url, method: "GET")
     }
     
+    func fetchProviders() async throws -> [ProviderMetadata] {
+        let url = Environment.current.apiBaseURL.appendingPathComponent("ai/providers")
+        return try await performRequest(url: url, method: "GET")
+    }
+
+    func createTask(_ createRequest: CreateTaskRequest) async throws -> ArchonTask {
+        let url = Environment.current.apiBaseURL.appendingPathComponent("agent/tasks")
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let body = try encoder.encode(createRequest)
+        // POST is not retried — task creation is not idempotent.
+        return try await performRequest(url: url, method: "POST", body: body, retryCount: 1)
+    }
+
     func cancelTask(id: String) async throws {
         let url = Environment.current.apiBaseURL.appendingPathComponent("agent/tasks/\(id)/cancel")
         var request = URLRequest(url: url)

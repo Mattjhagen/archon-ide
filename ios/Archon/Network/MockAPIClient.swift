@@ -28,6 +28,37 @@ class MockAPIClient: APIClientProtocol {
         return events[id] ?? []
     }
     
+    func fetchProviders() async throws -> [ProviderMetadata] {
+        return [
+            ProviderMetadata(
+                id: "mock-provider",
+                name: "Mock Provider",
+                models: [ModelMetadata(id: "mock-model", name: "Mock Model")],
+                configured: true,
+                requiresKey: false
+            )
+        ]
+    }
+
+    func createTask(_ request: CreateTaskRequest) async throws -> ArchonTask {
+        let task = ArchonTask(
+            id: "task-\(tasks.count + 1)",
+            title: request.title,
+            status: .queued,
+            provider: request.provider,
+            model: request.model,
+            reasoningEffort: request.reasoningEffort,
+            currentStep: 0,
+            maxSteps: 40,
+            creditsUsed: 0,
+            creditLimit: 500,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        tasks.append(task)
+        return task
+    }
+
     func cancelTask(id: String) async throws {
         if let index = tasks.firstIndex(where: { $0.id == id }) {
             let oldTask = tasks[index]
