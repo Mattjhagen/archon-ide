@@ -22,13 +22,10 @@ struct CodeEditorView: View {
                 Divider()
                 
                 // Editor
-                TextEditor(text: Binding(
+                SyntaxEditorView(text: Binding(
                     get: { selectedFile.content ?? "" },
                     set: { ideManager.updateFileContent(id: selectedFile.id, newContent: $0) }
-                ))
-                .font(.system(.body, design: .monospaced))
-                .scrollContentBackground(.hidden)
-                .background(Color(uiColor: .systemBackground))
+                ), language: determineLanguage(filename: selectedFile.name))
             }
         } else {
             VStack(spacing: 16) {
@@ -42,5 +39,12 @@ struct CodeEditorView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(uiColor: .systemGroupedBackground))
         }
+    }
+    
+    private func determineLanguage(filename: String) -> SyntaxEditorView.Language {
+        if filename.hasSuffix(".swift") { return .swift }
+        if filename.hasSuffix(".js") || filename.hasSuffix(".ts") { return .javascript }
+        if filename.hasSuffix(".html") { return .html }
+        return .swift
     }
 }
