@@ -14,3 +14,4 @@ pub mod repository;
 pub mod routes;
 pub mod runner;
 pub mod workspace;
+pub mod workspace_sync;

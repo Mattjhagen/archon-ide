@@ -81,7 +81,9 @@ async fn main() -> std::io::Result<()> {
                 .route("/agent/tasks", web::get().to(agent::routes::list_tasks))
                 .route("/agent/tasks/{id}", web::get().to(agent::routes::get_task))
                 .route("/agent/tasks/{id}/events", web::get().to(agent::routes::get_task_events))
-                .route("/agent/tasks/{id}/cancel", web::post().to(agent::routes::cancel_task)))
+                .route("/agent/tasks/{id}/cancel", web::post().to(agent::routes::cancel_task))
+                .route("/workspaces/snapshot", web::post().to(agent::workspace_sync::get_snapshot))
+                .route("/workspaces/patch", web::post().to(agent::workspace_sync::apply_patch)))
             .service(fs_serve::Files::new("/", dist.to_string_lossy().as_ref()).index_file("index.html"))
     })
     .bind(("0.0.0.0", port))?
