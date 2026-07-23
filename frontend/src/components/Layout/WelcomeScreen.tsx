@@ -50,8 +50,8 @@ export function WelcomeScreen({ onOpenFolder, onOpenPath }: WelcomeScreenProps) 
           <ActionCard
             onClick={onOpenFolder}
             icon={<FolderOpen size={20} />}
-            label="Open Folder"
-            description="Browse and select a project directory"
+            label="Open Local Folder"
+            description="Browse local directory (Cloud sync available after secure workspace provisioning)"
             gradient="linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(99, 102, 241, 0.04))"
             borderColor="rgba(139, 92, 246, 0.15)"
             iconColor="#a78bfa"
@@ -109,7 +109,8 @@ function ActionCard({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group"
+      aria-label={`${label}: ${description}`}
+      className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
       style={{
         background: gradient,
         border: `1px solid ${borderColor}`,
