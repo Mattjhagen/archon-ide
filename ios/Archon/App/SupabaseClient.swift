@@ -23,7 +23,7 @@ let supabase = SupabaseClient(
     supabaseURL: Environment.current.supabaseURL,
     supabaseKey: Environment.current.supabaseAnonKey,
     options: SupabaseClientOptions(
-        auth: AuthOptions(
+        auth: .init(
             storage: SupabaseKeychainStorage()
         )
     )
