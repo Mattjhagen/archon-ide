@@ -37,11 +37,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
       <section className="auth-card">
         <div className="setup-kicker">PRIVATE WORKSPACE</div>
         <h1>Build without boundaries.</h1>
-        <p>Sign in to launch an isolated coding environment that belongs only to you.</p>
-        <button className="github-auth" onClick={signInWithGithub}><Github size={17} /> Continue with GitHub <ArrowRight size={15} /></button>
+        <p>Sign in to launch your coding environment (isolated workspaces coming next).</p>
+        <button className="github-auth focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500" aria-label="Sign in with GitHub (does not grant repository access)" onClick={signInWithGithub}><Github size={17} /> Sign in with GitHub (No repo access) <ArrowRight size={15} /></button>
         <div className="auth-divider"><span>or use a secure email link</span></div>
-        <label><span><Mail size={13} /> Email address</span><div><input type="email" value={email} onChange={event => setEmail(event.target.value)} onKeyDown={event => event.key === 'Enter' && email && sendMagicLink()} placeholder="you@company.com" /><button onClick={sendMagicLink} disabled={!email}>Send link</button></div></label>
-        {message && <div className="auth-message">{message}</div>}
+        <label><span><Mail size={13} /> Email address</span><div><input type="email" value={email} onChange={event => setEmail(event.target.value)} onKeyDown={event => event.key === 'Enter' && email && sendMagicLink()} placeholder="you@company.com" className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500" /><button className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500" onClick={sendMagicLink} disabled={!email}>Send link</button></div></label>
+        {message && <div className="auth-message" role="alert" aria-live="polite">{message}</div>}
         <div className="privacy-note"><LockKeyhole size={14} /><span>Authentication by Supabase. Workspace access is scoped to your identity.</span></div>
       </section>
     </main>

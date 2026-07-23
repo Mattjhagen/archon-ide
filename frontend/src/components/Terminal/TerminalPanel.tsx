@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import { Monitor } from 'lucide-react';
+import { Monitor, Shield } from 'lucide-react';
 import 'xterm/css/xterm.css';
 import { authenticatedFetch } from '../../lib/supabase';
+import { agentTerminal } from '../../lib/agent-terminal';
 
 interface TerminalPanelProps {
   projectPath: string;
@@ -16,6 +17,7 @@ export function TerminalPanel({ projectPath, sessionId, onSessionCreated }: Term
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [connected, setConnected] = useState(false);
+  const [agentMode, setAgentMode] = useState(false);
 
   useEffect(() => {
     if (sessionId) return;
@@ -133,6 +135,19 @@ export function TerminalPanel({ projectPath, sessionId, onSessionCreated }: Term
         <div className="flex items-center gap-1.5">
           <Monitor size={12} style={{ color: 'var(--text-muted)' }} />
           <span className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>Terminal</span>
+          <button 
+            onClick={() => setAgentMode(!agentMode)}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded ml-2 transition-colors"
+            style={{ 
+              background: agentMode ? 'var(--accent-subtle)' : 'transparent',
+              color: agentMode ? 'var(--accent-hover)' : 'var(--text-muted)',
+              border: `1px solid ${agentMode ? 'var(--accent)' : 'transparent'}`
+            }}
+            title="Allow AI to execute commands"
+          >
+            <Shield size={10} />
+            <span className="text-[9px] uppercase tracking-wider font-bold">Agent Mode</span>
+          </button>
         </div>
         <span className="text-[10px] flex items-center gap-1.5">
           <span

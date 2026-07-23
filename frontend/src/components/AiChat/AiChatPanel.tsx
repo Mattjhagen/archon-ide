@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Cpu, Copy, Check, ChevronDown, Sparkles, BrainCircuit, Square } from 'lucide-react';
+import { Send, Cpu, Copy, Check, ChevronDown, Sparkles, BrainCircuit, Square, ListTodo } from 'lucide-react';
 import type { ProviderInfo, ReasoningEffort } from '../../types';
 
 interface AiChatPanelProps {
@@ -18,12 +18,13 @@ interface AiChatPanelProps {
   onReasoningEffortChange: (effort: ReasoningEffort) => void;
   agentStatus: string;
   onStop: () => void;
+  onOpenTasks: () => void;
 }
 
 export function AiChatPanel({
   messages, loading, onSend, providers, selectedProvider, selectedModel,
   onProviderChange, onModelChange, width, activeFilePath, reasoningEffort,
-  creditsConsumed, onReasoningEffortChange, agentStatus, onStop,
+  creditsConsumed, onReasoningEffortChange, agentStatus, onStop, onOpenTasks,
 }: AiChatPanelProps) {
   const [input, setInput] = useState('');
   const [showProviderMenu, setShowProviderMenu] = useState(false);
@@ -72,6 +73,9 @@ export function AiChatPanel({
           <span className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>AI Assistant</span>
         </div>
         <div className="flex items-center gap-1">
+          <button onClick={onOpenTasks} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px]" style={{ color: 'var(--accent-hover)', background: 'var(--accent-subtle)', border: '1px solid var(--border-faint)' }} title="Open autonomous tasks">
+            <ListTodo size={11} /> Tasks
+          </button>
           <div className="relative">
             <button
               onClick={() => setShowReasoningMenu(!showReasoningMenu)}
@@ -235,14 +239,14 @@ export function AiChatPanel({
           onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.boxShadow = 'none'; } }}
         >
           <textarea ref={undefined} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-            placeholder="Ask about your code..." rows={2} className="flex-1 text-[12px] resize-none border-none outline-none"
+            placeholder="Ask about your code... Type @ to attach files" rows={2} className="flex-1 text-[12px] resize-none border-none outline-none"
             style={{ background: 'transparent', color: 'var(--text-primary)', fontFamily: 'inherit' }} />
           <button onClick={handleSend} disabled={!input.trim() || loading} className="btn-primary self-end p-2.5 rounded-xl" style={{ opacity: input.trim() && !loading ? 1 : 0.3 }}>
             <Send size={14} />
           </button>
         </div>
         <div className="text-center mt-1.5">
-          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Enter to send · Shift+Enter for new line · {creditsConsumed} credits used</span>
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Enter to send · Shift+Enter for new line · Type @ for Context · {creditsConsumed} credits used</span>
         </div>
       </div>
     </div>

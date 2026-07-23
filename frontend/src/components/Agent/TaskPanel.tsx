@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Send, Square, RefreshCw, ChevronDown, BrainCircuit, Zap } from 'lucide-react';
+import { Send, Square, RefreshCw, ChevronDown, BrainCircuit, Zap, MessageSquare } from 'lucide-react';
 import type { AgentTask, AgentEvent, ReasoningEffort } from '../../types/agent';
 import {
   TASK_STATUS_LABEL,
@@ -25,6 +25,7 @@ interface TaskPanelProps {
   onProviderChange: (p: string) => void;
   onModelChange: (m: string) => void;
   onReasoningEffortChange: (e: ReasoningEffort) => void;
+  onOpenChat: () => void;
 }
 
 // ─── Polling interval when a task is running ─────────────────────────────────
@@ -44,6 +45,7 @@ export function TaskPanel({
   onProviderChange,
   onModelChange,
   onReasoningEffortChange,
+  onOpenChat,
 }: TaskPanelProps) {
   const [tasks, setTasks] = useState<AgentTask[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -212,6 +214,14 @@ export function TaskPanel({
         </div>
 
         <div className="flex items-center gap-1">
+          <button
+            onClick={onOpenChat}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px]"
+            style={{ color: 'var(--text-tertiary)', background: 'var(--bg-raised)', border: '1px solid var(--border-faint)' }}
+            title="Open quick chat"
+          >
+            <MessageSquare size={11} /> Chat
+          </button>
           {/* Reasoning effort picker */}
           <div className="relative">
             <button

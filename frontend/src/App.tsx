@@ -3,6 +3,7 @@ import { useAppState } from './hooks/useAppState';
 import { Sidebar } from './components/Layout/Sidebar';
 import { EditorArea } from './components/Editor/EditorArea';
 import { AiChatPanel } from './components/AiChat/AiChatPanel';
+import { TaskPanel } from './components/Agent/TaskPanel';
 import { TerminalPanel } from './components/Terminal/TerminalPanel';
 import { StatusBar } from './components/StatusBar/StatusBar';
 import { WelcomeScreen } from './components/Layout/WelcomeScreen';
@@ -17,6 +18,7 @@ type AiPanelMode = 'chat' | 'tasks';
 function App() {
   const app = useAppState();
   const [showSettings, setShowSettings] = useState(false);
+  const [aiSurface, setAiSurface] = useState<'tasks' | 'chat'>('tasks');
   const [appearance, setAppearance] = useState<Appearance>(savedAppearance);
   const [setupComplete, setSetupComplete] = useState(() => localStorage.getItem('archon.setupComplete') === 'true');
   const [aiPanelMode, setAiPanelMode] = useState<AiPanelMode>('chat');
@@ -146,12 +148,14 @@ function App() {
             providers={app.state.providers}
             selectedProvider={app.state.selectedProvider}
             selectedModel={app.state.selectedModel}
+            reasoningEffort={app.state.reasoningEffort}
             apiKey={app.state.apiKey}
             appearance={appearance}
             onAppearanceChange={setAppearance}
             onApiKeyChange={(apiKey) => app.update({ apiKey })}
             onProviderChange={(p) => app.update({ selectedProvider: p })}
             onModelChange={(m) => app.update({ selectedModel: m })}
+            onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
             onClose={() => setShowSettings(false)}
           />
         )}
@@ -307,12 +311,14 @@ function App() {
           providers={app.state.providers}
           selectedProvider={app.state.selectedProvider}
           selectedModel={app.state.selectedModel}
+          reasoningEffort={app.state.reasoningEffort}
           apiKey={app.state.apiKey}
           appearance={appearance}
           onAppearanceChange={setAppearance}
           onApiKeyChange={(apiKey) => app.update({ apiKey })}
           onProviderChange={(p) => app.update({ selectedProvider: p })}
           onModelChange={(m) => app.update({ selectedModel: m })}
+          onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
           onClose={() => setShowSettings(false)}
         />
       )}
