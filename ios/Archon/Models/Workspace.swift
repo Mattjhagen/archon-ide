@@ -20,6 +20,25 @@ struct FileNode: Identifiable, Hashable, Codable {
         self.content = content
     }
     
+    
+    private static var saveURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("workspace.json")
+    }
+    
+    static func save(_ nodes: [FileNode]) {
+        if let data = try? JSONEncoder().encode(nodes) {
+            try? data.write(to: saveURL)
+        }
+    }
+    
+    static func load() -> [FileNode] {
+        if let data = try? Data(contentsOf: saveURL),
+           let nodes = try? JSONDecoder().decode([FileNode].self, from: data) {
+            return nodes
+        }
+        return mock()
+    }
+    
     static func mock() -> [FileNode] {
         return [
             FileNode(name: "src", type: .folder, children: [

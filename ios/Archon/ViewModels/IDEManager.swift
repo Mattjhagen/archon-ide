@@ -11,7 +11,7 @@ class IDEManager: ObservableObject {
     @Published var agentMessages: [TaskEvent] = []
     
     init() {
-        self.fileTree = FileNode.mock()
+        self.fileTree = FileNode.load()
     }
     
     func selectFile(_ file: FileNode) {
@@ -45,6 +45,7 @@ class IDEManager: ObservableObject {
         var newTree = fileTree
         if update(nodes: &newTree) {
             fileTree = newTree
+            FileNode.save(fileTree)
         }
         
         // Update selected file if it's the one currently open
