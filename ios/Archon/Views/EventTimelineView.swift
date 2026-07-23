@@ -40,16 +40,16 @@ struct EventTimelineView: View {
             
             // Content
             VStack(alignment: .leading, spacing: 4) {
-                Text(event.message)
+                Text(event.content)
                     .font(.subheadline)
                 
-                Text(event.createdAt, style: .relative)
+                Text(event.timestamp, style: .relative)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             .padding(.bottom, 24)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(event.message). \(event.createdAt.formatted(date: .abbreviated, time: .shortened)).")
+        .accessibilityLabel("\(event.content). \(event.timestamp.formatted(date: .abbreviated, time: .shortened)).")
     }
 }

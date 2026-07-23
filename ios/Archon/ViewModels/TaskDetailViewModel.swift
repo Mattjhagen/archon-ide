@@ -49,7 +49,7 @@ class TaskDetailViewModel: ObservableObject {
             let (newTask, newEvents) = try await (fetchedTask, fetchedEvents)
             
             self.task = newTask
-            self.events = newEvents.sorted(by: { $0.createdAt > $1.createdAt }) // Newest first
+            self.events = newEvents.sorted(by: { $0.timestamp > $1.timestamp }) // Newest first
             self.errorMessage = nil
         } catch {
             self.errorMessage = "Failed to sync task: \(error.localizedDescription)"
