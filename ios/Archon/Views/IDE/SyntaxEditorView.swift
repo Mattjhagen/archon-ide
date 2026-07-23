@@ -75,7 +75,9 @@ struct SyntaxEditorView: UIViewRepresentable {
             let extraIndent = addsIndent ? "    " : ""
             let insertion = "\n" + indentation + extraIndent
 
-            textView.replace(range, withText: insertion)
+            textView.textStorage.replaceCharacters(in: range, with: insertion)
+            textView.selectedRange = NSRange(location: range.location + (insertion as NSString).length, length: 0)
+            
             editor.applyHighlighting()
             return false
         }
@@ -136,7 +138,9 @@ final class CodeTextView: UITextView {
         guard let symbol = sender.title else { return }
 
         let insertion = symbol == "Tab" ? "    " : symbol
-        replace(selectedRange, withText: insertion)
+        let currentRange = selectedRange
+        textStorage.replaceCharacters(in: currentRange, with: insertion)
+        selectedRange = NSRange(location: currentRange.location + (insertion as NSString).length, length: 0)
         applyHighlighting()
     }
 
