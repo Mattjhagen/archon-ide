@@ -34,7 +34,7 @@ class AuthManager: NSObject, ObservableObject {
             do {
                 self.authError = nil
                 let response = try await supabase.auth.getOAuthSignInURL(
-                    provider: OAuthProvider.github,
+                    provider: Provider.github,
                     redirectTo: URL(string: "archon://auth/callback")
                 )
                 
