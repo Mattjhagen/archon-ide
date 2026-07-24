@@ -9,8 +9,8 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#06060a" />
-    <meta name="description" content="Archon is a browser-based AI coding agent and web IDE with autonomous task execution, multi-model reasoning, Git tools, terminals, and bring-your-own API keys." />
-    <meta name="keywords" content="AI coding agent, web IDE, browser IDE, autonomous coding assistant, AI app builder, cloud development environment, OpenAI coding agent, Claude coding agent, Gemini coding agent" />
+    <meta name="description" content="Archon is an open-source AI coding agent and web IDE with autonomous tasks, durable project memory, multi-model reasoning, Git tools, terminals, and local AI support." />
+    <meta name="keywords" content="AI coding agent, web IDE, browser IDE, autonomous coding assistant, AI app builder, cloud development environment, open source AI IDE, OpenAI coding agent, Claude coding agent, Gemini coding agent, local AI coding agent" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="application-name" content="Archon IDE" />
     <meta name="author" content="Relay" />
@@ -33,35 +33,63 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Archon IDE",
-        "alternateName": "Archon AI IDE",
-        "url": "https://app.relayapp.pro/",
-        "image": "https://app.relayapp.pro/brand/archon-oauth-logo-512.png",
-        "description": "A browser-based AI coding agent and web IDE for autonomous software development with multi-model reasoning, terminals, Git workflows, and bring-your-own API keys.",
-        "applicationCategory": "DeveloperApplication",
-        "applicationSubCategory": "AI coding agent and web IDE",
-        "operatingSystem": "Any operating system with a modern web browser",
-        "browserRequirements": "Requires JavaScript and a modern web browser",
-        "isAccessibleForFree": true,
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD",
-          "description": "Bring your own supported AI provider API key."
-        },
-        "featureList": [
-          "Autonomous multi-pass coding tasks",
-          "Low, medium, and high reasoning controls",
-          "OpenAI, Anthropic, Gemini, and local model support",
-          "Integrated source editor, terminal, Git, search, and diff review",
-          "Session-only bring-your-own API keys"
-        ],
-        "publisher": {
-          "@type": "Organization",
-          "name": "Relay",
-          "url": "https://relayapp.pro/"
-        }
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://relayapp.pro/#organization",
+            "name": "Relay",
+            "url": "https://relayapp.pro/",
+            "logo": "https://app.relayapp.pro/brand/archon-oauth-logo-512.png",
+            "sameAs": [
+              "https://github.com/Mattjhagen/Relay",
+              "https://github.com/Mattjhagen/archon-ide"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://app.relayapp.pro/#website",
+            "name": "Archon IDE",
+            "url": "https://app.relayapp.pro/",
+            "publisher": {
+              "@id": "https://relayapp.pro/#organization"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://app.relayapp.pro/#software",
+            "name": "Archon IDE",
+            "alternateName": "Archon AI IDE",
+            "url": "https://app.relayapp.pro/",
+            "image": "https://app.relayapp.pro/brand/archon-oauth-logo-512.png",
+            "description": "An open-source, browser-based AI coding agent and web IDE for autonomous software development with durable project memory, multi-model reasoning, terminals, Git workflows, and local AI support.",
+            "applicationCategory": "DeveloperApplication",
+            "applicationSubCategory": "AI coding agent and web IDE",
+            "operatingSystem": "Any operating system with a modern web browser",
+            "browserRequirements": "Requires JavaScript and a modern web browser",
+            "isAccessibleForFree": true,
+            "codeRepository": "https://github.com/Mattjhagen/archon-ide",
+            "isPartOf": {
+              "@id": "https://app.relayapp.pro/#website"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "description": "Bring your own supported AI provider API key."
+            },
+            "featureList": [
+              "Autonomous multi-pass coding tasks",
+              "Durable projects, conversations, and workspace continuity",
+              "Low, medium, and high reasoning controls",
+              "OpenAI, Anthropic, Gemini, Ollama, and OpenCode model support",
+              "Integrated source editor, terminal, Git, search, and diff review",
+              "Session-only bring-your-own API keys"
+            ],
+            "publisher": {
+              "@id": "https://relayapp.pro/#organization"
+            }
+          }
+        ]
       }
     </script>
     <style>
@@ -69,6 +97,13 @@
     </style>
   </head>
   <body>
+    <noscript>
+      <main>
+        <h1>Archon IDE</h1>
+        <p>Archon is an open-source, multi-model AI coding agent and web IDE from Relay. Enable JavaScript to sign in and use the application.</p>
+        <p><a href="https://relayapp.pro/">Learn about Relay</a> or <a href="https://github.com/Mattjhagen/archon-ide">view the Archon source code</a>.</p>
+      </main>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

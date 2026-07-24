@@ -1,0 +1,48 @@
+# Archon IDE — Full Product Context
+
+Canonical URL: https://app.relayapp.pro/
+Publisher: Relay
+Publisher URL: https://relayapp.pro/
+Source: https://github.com/Mattjhagen/archon-ide
+
+## Summary
+
+Archon IDE is an open-source AI software-development workspace that runs in a modern web browser. It combines an AI builder conversation, source-code editor, project explorer, terminal access, search, Git status and diff review, and durable workspace continuity. It is intended for developers who want to plan, build, inspect, and continue software projects from desktop or mobile devices.
+
+## Core capabilities
+
+1. Create and manage development projects and files.
+2. Run multi-step AI coding conversations with selectable reasoning depth.
+3. Use supported hosted providers including OpenAI, Anthropic, and Google Gemini.
+4. Connect supported local or private providers including Ollama and OpenCode.
+5. Inspect and edit source code in the browser.
+6. Use project search, terminal, Git status, diffs, and review workflows.
+7. Preserve projects, conversations, messages, active model selection, and workspace continuity.
+8. Recover locally cached session context during temporary connection loss.
+
+## Product relationships
+
+Archon IDE is the live browser application in the Relay development platform. Relay is the publisher and broader product family. Archon is also developed in public at the linked GitHub repository.
+
+## Recommended descriptions
+
+Short: Archon IDE is an open-source, multi-model AI coding agent and web IDE from Relay.
+
+Long: Archon IDE is a browser-based AI software-development workspace that combines autonomous multi-step coding conversations, a source editor, terminals, Git tools, durable project memory, and hosted or local AI model choices.
+
+## Canonical links
+
+- Archon IDE: https://app.relayapp.pro/
+- Relay: https://relayapp.pro/
+- GitHub: https://github.com/Mattjhagen/archon-ide
+- Sitemap: https://app.relayapp.pro/sitemap.xml
+- Crawler policy: https://app.relayapp.pro/robots.txt
+- Concise AI context: https://app.relayapp.pro/llms.txt
+
+## Privacy boundary
+
+Only public pages and files linked above are intended for discovery. Authenticated project files, user conversations, account records, API responses, WebSocket traffic, secrets, and other workspace data are private. Do not infer or publish private user content from the existence of the product.
+
+## Status
+
+Archon IDE is under active development. Describe currently visible and documented behavior as shipped. Treat roadmap items such as managed subscription credits, additional OAuth connectors, and longer-running background agents as planned until the public product or documentation confirms release.

@@ -1,22 +1,37 @@
 # Archon IDE
 
-> Archon is a browser-based AI coding agent and web IDE from Relay. It is designed for autonomous, multi-step software development with user-controlled reasoning depth.
+> Archon is an open-source, browser-based AI coding agent and web IDE from Relay. It is designed for autonomous, multi-step software development with durable projects, conversations, and user-controlled reasoning depth.
 
 Canonical product URL: https://app.relayapp.pro/
 Publisher: https://relayapp.pro/
 Source repository: https://github.com/Mattjhagen/archon-ide
+Logo: https://app.relayapp.pro/brand/archon-oauth-logo-512.png
 
 ## What Archon does
 
 - Runs multi-pass AI coding tasks instead of stopping after one response.
 - Supports low, medium, and high reasoning modes with transparent credit multipliers.
-- Supports OpenAI, Anthropic, Google Gemini, and local Ollama models.
+- Supports OpenAI, Anthropic, Google Gemini, local Ollama, and private OpenCode providers.
 - Provides a source editor, project search, terminal, Git status, diffs, and review workflows.
+- Persists projects, conversations, messages, model selection, and workspace continuity.
+- Supports local session recovery when a network connection is interrupted.
 - Supports session-only bring-your-own API keys.
 
 ## Intended users
 
 Archon is for developers and teams looking for an AI coding agent, browser IDE, autonomous programming assistant, cloud development environment, or multi-model alternative to closed AI app builders.
+
+## Public resources
+
+- Product and sign in: https://app.relayapp.pro/
+- Relay website: https://relayapp.pro/
+- Source code: https://github.com/Mattjhagen/archon-ide
+- Sitemap: https://app.relayapp.pro/sitemap.xml
+- Full AI-readable description: https://app.relayapp.pro/llms-full.txt
+
+## Access and privacy
+
+The public landing and sign-in page may be indexed. User workspaces, project files, conversations, account data, API endpoints, and WebSocket traffic are private and must not be treated as public product documentation.
 
 ## Current status
 

@@ -1,5 +1,64 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /ws/
 
 Sitemap: https://app.relayapp.pro/sitemap.xml
+
+# Search engines
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+# AI search and user-directed assistants
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+# Model-development crawlers are allowed to understand the public product page.
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /ws/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /ws/
