@@ -16,10 +16,10 @@ interface SetupScreenProps {
 }
 
 const providers = [
-  { id: 'openai', name: 'OpenAI', detail: 'GPT-5 and GPT-4o', model: 'gpt-4o', placeholder: 'sk-proj-…' },
-  { id: 'anthropic', name: 'Anthropic', detail: 'Claude Sonnet 4', model: 'claude-sonnet-4-20250514', placeholder: 'sk-ant-…' },
+  { id: 'openai', name: 'OpenAI', detail: 'GPT-5.6 Terra', model: 'gpt-5.6-terra', placeholder: 'sk-proj-…' },
+  { id: 'anthropic', name: 'Anthropic', detail: 'Claude Sonnet 5', model: 'claude-sonnet-5', placeholder: 'sk-ant-…' },
+  { id: 'gemini', name: 'Google Gemini', detail: 'Gemini 3.6 Flash', model: 'gemini-3.6-flash', placeholder: 'AIza…' },
   { id: 'ollama', name: 'Ollama', detail: 'Models on your machine', model: 'llama3.2', placeholder: 'No key required' },
-  { id: 'mock', name: 'Explore demo', detail: 'Simulated mock responses (not real analysis)', model: 'mock-responses', placeholder: 'No key required' },
 ];
 
 export function SetupScreen({ appearance, onAppearanceChange, onComplete }: SetupScreenProps) {
@@ -28,7 +28,7 @@ export function SetupScreen({ appearance, onAppearanceChange, onComplete }: Setu
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const selected = providers.find(item => item.id === provider)!;
-  const requiresKey = provider === 'openai' || provider === 'anthropic';
+  const requiresKey = provider === 'openai' || provider === 'anthropic' || provider === 'gemini';
 
   return (
     <main className="setup-shell">
@@ -47,7 +47,7 @@ export function SetupScreen({ appearance, onAppearanceChange, onComplete }: Setu
           <>
             <div className="setup-kicker">01 · MAKE IT YOURS</div>
             <h1>Choose your workspace.</h1>
-            <p className="setup-lede">Three distinct environments, one serious coding tool. You can switch any time.</p>
+            <p className="setup-lede">Four distinct environments, one serious coding tool. You can switch any time.</p>
             <div className="theme-grid" role="radiogroup" aria-label="Select appearance theme">
               {appearances.map(item => (
                 <button key={item.id} role="radio" aria-checked={appearance === item.id} className={`theme-choice theme-${item.id} ${appearance === item.id ? 'selected' : ''} focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500`} onClick={() => onAppearanceChange(item.id)}>

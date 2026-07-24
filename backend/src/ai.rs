@@ -144,16 +144,13 @@ pub async fn create_job(
         }
 
         let result = tokio::time::timeout(Duration::from_secs(timeout_seconds), async {
-            let mut attempts = vec![(
-                chat_request.provider.clone(),
-                chat_request.model.clone(),
-            )];
-            attempts.extend(
-                chat_request
-                    .fallback_models
-                    .iter()
-                    .map(|fallback| (Some(fallback.provider.clone()), Some(fallback.model.clone()))),
-            );
+            let mut attempts = vec![(chat_request.provider.clone(), chat_request.model.clone())];
+            attempts.extend(chat_request.fallback_models.iter().map(|fallback| {
+                (
+                    Some(fallback.provider.clone()),
+                    Some(fallback.model.clone()),
+                )
+            }));
 
             for (index, (provider, model)) in attempts.iter().enumerate() {
                 if let Some(stored) = jobs.write().await.get_mut(&job_id) {
@@ -183,10 +180,12 @@ pub async fn create_job(
                 let bytes = to_bytes(response.into_body())
                     .await
                     .map_err(|_| "Could not read the AI response".to_string())?;
-                let payload = serde_json::from_slice::<serde_json::Value>(&bytes)
-                    .unwrap_or_else(|_| serde_json::json!({
-                        "error": String::from_utf8_lossy(&bytes)
-                    }));
+                let payload =
+                    serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_else(|_| {
+                        serde_json::json!({
+                            "error": String::from_utf8_lossy(&bytes)
+                        })
+                    });
 
                 if status.is_success() {
                     return Ok(payload);
@@ -203,7 +202,9 @@ pub async fn create_job(
         .await;
 
         let mut all_jobs = jobs.write().await;
-        let Some(stored) = all_jobs.get_mut(&job_id) else { return };
+        let Some(stored) = all_jobs.get_mut(&job_id) else {
+            return;
+        };
         stored.updated_at = Utc::now();
 
         match result {
@@ -246,9 +247,24 @@ fn provider_error_message(payload: &serde_json::Value) -> String {
     error
         .as_str()
         .map(str::to_owned)
-        .or_else(|| error.get("message").and_then(|value| value.as_str()).map(str::to_owned))
-        .or_else(|| error.get("detail").and_then(|value| value.as_str()).map(str::to_owned))
-        .or_else(|| payload.get("detail").and_then(|value| value.as_str()).map(str::to_owned))
+        .or_else(|| {
+            error
+                .get("message")
+                .and_then(|value| value.as_str())
+                .map(str::to_owned)
+        })
+        .or_else(|| {
+            error
+                .get("detail")
+                .and_then(|value| value.as_str())
+                .map(str::to_owned)
+        })
+        .or_else(|| {
+            payload
+                .get("detail")
+                .and_then(|value| value.as_str())
+                .map(str::to_owned)
+        })
         .unwrap_or_else(|| error.to_string())
 }
 
@@ -267,6 +283,12 @@ fn is_credit_limit_message(message: &str) -> bool {
     ]
     .iter()
     .any(|signal| message.contains(signal))
+}
+
+fn mock_provider_enabled() -> bool {
+    std::env::var("ENABLE_MOCK_PROVIDER")
+        .map(|value| matches!(value.to_lowercase().as_str(), "1" | "true" | "yes"))
+        .unwrap_or(false)
 }
 
 pub async fn get_job(
@@ -371,12 +393,12 @@ pub async fn list_providers() -> HttpResponse {
         name: "Anthropic".to_string(),
         models: vec![
             ModelInfo {
-                id: "claude-sonnet-4-20250514".to_string(),
-                name: "Claude Sonnet 4".to_string(),
+                id: "claude-sonnet-5".to_string(),
+                name: "Claude Sonnet 5".to_string(),
             },
             ModelInfo {
-                id: "claude-haiku-4-20250414".to_string(),
-                name: "Claude Haiku 4".to_string(),
+                id: "claude-haiku-4-5".to_string(),
+                name: "Claude Haiku 4.5".to_string(),
             },
         ],
         requires_key: true,
@@ -389,12 +411,12 @@ pub async fn list_providers() -> HttpResponse {
         name: "Google Gemini".to_string(),
         models: vec![
             ModelInfo {
-                id: "gemini-3-pro-preview".to_string(),
-                name: "Gemini 3 Pro".to_string(),
+                id: "gemini-3.1-pro-preview".to_string(),
+                name: "Gemini 3.1 Pro".to_string(),
             },
             ModelInfo {
-                id: "gemini-3-flash-preview".to_string(),
-                name: "Gemini 3 Flash".to_string(),
+                id: "gemini-3.6-flash".to_string(),
+                name: "Gemini 3.6 Flash".to_string(),
             },
         ],
         requires_key: true,
@@ -406,6 +428,7 @@ pub async fn list_providers() -> HttpResponse {
         std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
     let ollama_available = Client::new()
         .get(format!("{}/api/tags", ollama_url))
+        .timeout(Duration::from_secs(3))
         .send()
         .await
         .map(|r| r.status().is_success())
@@ -451,24 +474,25 @@ pub async fn list_providers() -> HttpResponse {
         configured: !opencode_url.is_empty() && !opencode_password.is_empty(),
     });
 
-    // Mock (always available)
-    providers.push(ProviderInfo {
-        id: "mock".to_string(),
-        name: "Mock (Demo)".to_string(),
-        models: vec![ModelInfo {
-            id: "mock-responses".to_string(),
-            name: "Mock Responses".to_string(),
-        }],
-        requires_key: false,
-        configured: true,
-    });
+    if mock_provider_enabled() {
+        providers.push(ProviderInfo {
+            id: "mock".to_string(),
+            name: "Mock (Demo)".to_string(),
+            models: vec![ModelInfo {
+                id: "mock-responses".to_string(),
+                name: "Mock Responses".to_string(),
+            }],
+            requires_key: false,
+            configured: true,
+        });
+    }
 
     HttpResponse::Ok().json(providers)
 }
 
 pub async fn chat(body: web::Json<ChatReq>) -> HttpResponse {
-    let provider = body.provider.as_deref().unwrap_or("mock");
-    let model = body.model.as_deref().unwrap_or("mock-responses");
+    let provider = body.provider.as_deref().unwrap_or("openai");
+    let model = body.model.as_deref().unwrap_or("gpt-5.6-terra");
     let max_tokens = body.max_tokens.unwrap_or(2048);
     let temperature = body.temperature.unwrap_or(0.7);
     let effort = body.reasoning_effort;
@@ -508,7 +532,9 @@ pub async fn chat(body: web::Json<ChatReq>) -> HttpResponse {
         }
         "ollama" => chat_ollama(&body.messages, model, max_tokens, temperature, effort).await,
         "opencode_local" => chat_opencode(&body.messages, model, effort).await,
-        "mock" => chat_mock(&body.messages, model, effort).await,
+        "mock" if mock_provider_enabled() => chat_mock(&body.messages, model, effort).await,
+        "mock" => HttpResponse::ServiceUnavailable()
+            .json(serde_json::json!({"error": "The demo provider is disabled."})),
         _ => HttpResponse::BadRequest().json(serde_json::json!({"error": "Unknown AI provider"})),
     }
 }
@@ -622,11 +648,14 @@ async fn chat_anthropic(
     let mut body = serde_json::json!({
         "model": model,
         "max_tokens": max_tokens,
-        "temperature": temperature,
         "messages": user_msgs,
-        "thinking": { "type": "adaptive" },
-        "output_config": { "effort": effort.as_str() },
     });
+    if model.contains("haiku") {
+        body["temperature"] = serde_json::json!(temperature);
+    } else {
+        body["thinking"] = serde_json::json!({ "type": "adaptive" });
+        body["output_config"] = serde_json::json!({ "effort": effort.as_str() });
+    }
 
     if !system_msg.is_empty() {
         body["system"] = serde_json::json!(system_msg);
@@ -645,6 +674,9 @@ async fn chat_anthropic(
         Ok(r) => match r.text().await {
             Ok(text) => {
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
+                    if val.get("error").is_some() {
+                        return HttpResponse::BadGateway().json(&val);
+                    }
                     let content = val["content"]
                         .as_array()
                         .into_iter()
@@ -679,7 +711,7 @@ async fn chat_gemini(
     messages: &[ChatMessage],
     model: &str,
     max_tokens: u32,
-    temperature: f32,
+    _temperature: f32,
     request_key: Option<&str>,
     effort: ReasoningEffort,
 ) -> HttpResponse {
@@ -714,7 +746,6 @@ async fn chat_gemini(
         "contents": contents,
         "generationConfig": {
             "maxOutputTokens": max_tokens,
-            "temperature": temperature,
             "thinkingConfig": { "thinkingLevel": effort.as_str() }
         }
     });

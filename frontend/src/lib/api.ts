@@ -10,6 +10,7 @@ import type {
   DiffPreview,
   ChatMessage,
   ChatResponse,
+  AiJob,
   ProviderInfo,
   ReasoningEffort,
   SearchResult,
@@ -116,6 +117,24 @@ export const ai = {
       api_key: options?.apiKey,
       reasoning_effort: options?.reasoningEffort,
     }),
+
+  createJob: (messages: ChatMessage[], options?: {
+    model?: string;
+    provider?: string;
+    apiKey?: string;
+    reasoningEffort?: ReasoningEffort;
+    fallbackModels?: { provider: string; model: string }[];
+  }) =>
+    request<AiJob>('/ai/jobs', 'POST', {
+      messages,
+      model: options?.model,
+      provider: options?.provider,
+      api_key: options?.apiKey,
+      reasoning_effort: options?.reasoningEffort,
+      fallback_models: options?.fallbackModels ?? [],
+    }),
+
+  getJob: (id: string) => request<AiJob>(`/ai/jobs/${id}`),
 };
 
 // Diff API

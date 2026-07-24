@@ -29,6 +29,25 @@ interface TaskPanelProps {
 // ─── Polling interval when a task is running ─────────────────────────────────
 
 const POLL_MS = 2_000;
+const TASK_CACHE_KEY = 'archon.web.tasks.v1';
+
+function loadTaskCache(): AgentTask[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(TASK_CACHE_KEY) ?? '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadEventCache(taskId: string): AgentEvent[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(`${TASK_CACHE_KEY}.${taskId}.events`) ?? '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -44,8 +63,8 @@ export function TaskPanel({
   onModelChange,
   onReasoningEffortChange,
 }: TaskPanelProps) {
-  const [tasks, setTasks] = useState<AgentTask[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<AgentTask[]>(loadTaskCache);
+  const [selectedId, setSelectedId] = useState<string | null>(() => localStorage.getItem('archon.web.activeTask'));
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -58,13 +77,33 @@ export function TaskPanel({
   const eventsEndRef = useRef<HTMLDivElement>(null);
 
   const selectedTask = tasks.find((t) => t.id === selectedId) ?? null;
+  const visibleTasks = tasks.filter(task => !projectPath || task.workspace_path === projectPath);
+
+  useEffect(() => {
+    localStorage.setItem(TASK_CACHE_KEY, JSON.stringify(tasks.slice(0, 100)));
+  }, [tasks]);
+
+  useEffect(() => {
+    if (selectedId) localStorage.setItem('archon.web.activeTask', selectedId);
+    else localStorage.removeItem('archon.web.activeTask');
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (selectedId && events.length) {
+      localStorage.setItem(`${TASK_CACHE_KEY}.${selectedId}.events`, JSON.stringify(events.slice(-500)));
+    }
+  }, [events, selectedId]);
 
   // ── Data fetching ───────────────────────────────────────────────────────────
 
   const refreshTasks = useCallback(async () => {
     try {
       const list = await agentApi.listTasks();
-      setTasks(list);
+      setTasks(prev => {
+        const merged = new Map(prev.map(task => [task.id, task]));
+        for (const task of list) merged.set(task.id, task);
+        return [...merged.values()].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      });
     } catch {
       // Silently ignore on background refresh
     }
@@ -93,6 +132,10 @@ export function TaskPanel({
   useEffect(() => {
     refreshTasks();
   }, [refreshTasks]);
+
+  useEffect(() => {
+    if (selectedId) setEvents(loadEventCache(selectedId));
+  }, [selectedId]);
 
   // Scroll events to bottom on new entries
   useEffect(() => {
@@ -163,7 +206,7 @@ export function TaskPanel({
       const evs = await agentApi.getTaskEvents(taskId);
       setEvents(evs);
     } catch {
-      setEvents([]);
+      setEvents(loadEventCache(taskId));
     }
   };
 
@@ -366,7 +409,7 @@ export function TaskPanel({
             + New task
           </button>
 
-          {tasks.length === 0 && (
+          {visibleTasks.length === 0 && (
             <div
               className="px-3 py-3 text-[10px]"
               style={{ color: 'var(--text-muted)' }}
@@ -375,7 +418,7 @@ export function TaskPanel({
             </div>
           )}
 
-          {tasks.map((task) => (
+          {visibleTasks.map((task) => (
             <button
               key={task.id}
               onClick={() => handleSelectTask(task.id)}

@@ -32,12 +32,12 @@ export function TaskTimeline({ events }: TaskTimelineProps) {
             >
               {ev.summary}
             </p>
-            {'preview' in ev.metadata && Boolean(ev.metadata.preview) && (
+            {buildLogText(ev.metadata) && (
               <pre
-                className="text-[10px] mt-1 whitespace-pre-wrap break-words"
-                style={{ color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}
+                className="text-[10px] mt-1.5 p-2 rounded-md whitespace-pre-wrap break-words max-h-40 overflow-auto"
+                style={{ color: 'var(--text-tertiary)', background: 'var(--bg-void)', border: '1px solid var(--border-faint)', fontFamily: "'JetBrains Mono', monospace" }}
               >
-                {String(ev.metadata.preview).slice(0, 300)}
+                {buildLogText(ev.metadata)}
               </pre>
             )}
           </div>
@@ -48,4 +48,17 @@ export function TaskTimeline({ events }: TaskTimelineProps) {
       ))}
     </div>
   );
+}
+
+function buildLogText(metadata: Record<string, unknown>) {
+  const keys = ['command', 'path', 'preview', 'stdout', 'stderr', 'output', 'result', 'diff'];
+  const lines = keys
+    .filter(key => metadata[key] !== undefined && metadata[key] !== null && metadata[key] !== '')
+    .map(key => {
+      const value = typeof metadata[key] === 'string'
+        ? metadata[key]
+        : JSON.stringify(metadata[key], null, 2);
+      return `${key}: ${String(value).slice(0, 1200)}`;
+    });
+  return lines.join('\n');
 }

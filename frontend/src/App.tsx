@@ -10,22 +10,19 @@ import { WelcomeScreen } from './components/Layout/WelcomeScreen';
 import { DiffPreviewPanel } from './components/DiffPreview/DiffPreviewPanel';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { SetupScreen, type SetupResult } from './components/Setup/SetupScreen';
-import { applyAppearance, savedAppearance, type Appearance } from './lib/appearance';
 
 type AiPanelMode = 'chat' | 'tasks';
 
 function App() {
   const app = useAppState();
   const [showSettings, setShowSettings] = useState(false);
-  const [aiPanelMode, setAiPanelMode] = useState<AiPanelMode>('tasks');
-  const [appearance, setAppearance] = useState<Appearance>(savedAppearance);
+  const [aiPanelMode, setAiPanelMode] = useState<AiPanelMode>(() => localStorage.getItem('archon.aiPanelMode') === 'tasks' ? 'tasks' : 'chat');
   const [setupComplete, setSetupComplete] = useState(() => localStorage.getItem('archon.setupComplete') === 'true');
 
-  useEffect(() => applyAppearance(appearance), [appearance]);
+  useEffect(() => localStorage.setItem('archon.aiPanelMode', aiPanelMode), [aiPanelMode]);
 
   const completeSetup = useCallback((result: SetupResult) => {
-    setAppearance(result.appearance);
-    app.update({ selectedProvider: result.provider, selectedModel: result.model, apiKey: result.apiKey });
+    app.update({ appearance: result.appearance, selectedProvider: result.provider, selectedModel: result.model, apiKey: result.apiKey });
     localStorage.setItem('archon.setupComplete', 'true');
     setSetupComplete(true);
   }, [app]);
@@ -130,7 +127,7 @@ function App() {
   }, [app]);
 
   if (!setupComplete) {
-    return <SetupScreen appearance={appearance} onAppearanceChange={setAppearance} onComplete={completeSetup} />;
+    return <SetupScreen appearance={app.state.appearance} onAppearanceChange={(appearance) => app.update({ appearance })} onComplete={completeSetup} />;
   }
 
   if (!app.state.projectPath) {
@@ -139,7 +136,7 @@ function App() {
         className="h-screen w-screen flex flex-col"
         style={{ background: 'var(--bg-void)', color: 'var(--text-primary)' }}
       >
-        <WelcomeScreen onOpenFolder={handleFolderOpen} onOpenPath={handlePathInput} />
+        <WelcomeScreen onOpenFolder={handleFolderOpen} onOpenPath={handlePathInput} onOpenProject={app.openProject} />
         <StatusBar state={app.state} onOpenSettings={() => setShowSettings(true)} />
         {showSettings && (
           <SettingsModal
@@ -148,9 +145,14 @@ function App() {
             selectedModel={app.state.selectedModel}
             reasoningEffort={app.state.reasoningEffort}
             apiKey={app.state.apiKey}
-            appearance={appearance}
-            onAppearanceChange={setAppearance}
+            appearance={app.state.appearance}
+            onAppearanceChange={(appearance) => app.update({ appearance })}
             onApiKeyChange={(apiKey) => app.update({ apiKey })}
+            failoverEnabled={app.state.failoverEnabled}
+            onFailoverChange={(failoverEnabled) => app.update({ failoverEnabled })}
+            memoryState={app.state.memoryState}
+            profileAvatarUrl={app.state.profileAvatarUrl}
+            onProfileAvatarChange={(profileAvatarUrl) => app.update({ profileAvatarUrl })}
             onProviderChange={(p) => app.update({ selectedProvider: p })}
             onModelChange={(m) => app.update({ selectedModel: m })}
             onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
@@ -262,6 +264,8 @@ function App() {
             ) : (
               <AiChatPanel
                 messages={app.state.chatMessages}
+                sessions={app.state.chatSessions}
+                activeSessionId={app.state.activeChatSessionId}
                 loading={app.state.aiLoading}
                 onSend={app.sendChatMessage}
                 providers={app.state.providers}
@@ -271,10 +275,16 @@ function App() {
                 onModelChange={(m) => app.update({ selectedModel: m })}
                 width={app.state.aiPanelWidth}
                 activeFilePath={app.state.activeFile}
+                projectPath={app.state.projectPath}
                 reasoningEffort={app.state.reasoningEffort}
                 creditsConsumed={app.state.creditsConsumed}
                 onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}
                 agentStatus={app.state.agentStatus}
+                memoryState={app.state.memoryState}
+                jobLogs={app.state.activeJobLogs}
+                onNewConversation={app.newConversation}
+                onSelectConversation={app.selectConversation}
+                onDeleteConversation={app.deleteConversation}
                 onStop={app.stopAgent}
               />
             )}
@@ -289,6 +299,7 @@ function App() {
         onToggleTerminal={() => app.update({ terminalVisible: !app.state.terminalVisible })}
         onToggleSidebar={() => app.update({ sidebarCollapsed: !app.state.sidebarCollapsed })}
         onToggleAi={() => app.update({ aiPanelVisible: !app.state.aiPanelVisible })}
+        onCloseProject={app.closeProject}
       />
 
       {/* Settings Modal */}
@@ -299,9 +310,14 @@ function App() {
           selectedModel={app.state.selectedModel}
           reasoningEffort={app.state.reasoningEffort}
           apiKey={app.state.apiKey}
-          appearance={appearance}
-          onAppearanceChange={setAppearance}
+          appearance={app.state.appearance}
+          onAppearanceChange={(appearance) => app.update({ appearance })}
           onApiKeyChange={(apiKey) => app.update({ apiKey })}
+          failoverEnabled={app.state.failoverEnabled}
+          onFailoverChange={(failoverEnabled) => app.update({ failoverEnabled })}
+          memoryState={app.state.memoryState}
+          profileAvatarUrl={app.state.profileAvatarUrl}
+          onProfileAvatarChange={(profileAvatarUrl) => app.update({ profileAvatarUrl })}
           onProviderChange={(p) => app.update({ selectedProvider: p })}
           onModelChange={(m) => app.update({ selectedModel: m })}
           onReasoningEffortChange={(reasoningEffort) => app.update({ reasoningEffort })}

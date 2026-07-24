@@ -8,9 +8,10 @@ interface StatusBarProps {
   onToggleTerminal?: () => void;
   onToggleSidebar?: () => void;
   onToggleAi?: () => void;
+  onCloseProject?: () => void;
 }
 
-export function StatusBar({ state, onOpenSettings, onToggleTerminal, onToggleSidebar, onToggleAi }: StatusBarProps) {
+export function StatusBar({ state, onOpenSettings, onToggleTerminal, onToggleSidebar, onToggleAi, onCloseProject }: StatusBarProps) {
   return (
     <div
       className="status-bar h-[26px] text-white flex items-center px-2 text-[11px] flex-shrink-0 select-none"
@@ -24,10 +25,10 @@ export function StatusBar({ state, onOpenSettings, onToggleTerminal, onToggleSid
         {onToggleSidebar && (
           <SBBtn onClick={onToggleSidebar} title="Toggle Sidebar (Ctrl+B)"><PanelLeft size={12} /></SBBtn>
         )}
-        <span className="flex items-center gap-1 px-1.5 py-0.5 opacity-80">
+        <button onClick={onCloseProject} disabled={!onCloseProject} className="flex items-center gap-1 px-1.5 py-0.5 opacity-80" title={onCloseProject ? 'Back to projects' : undefined}>
           <FolderOpen size={10} />
           <span className="max-w-[200px] truncate text-[11px]">{state.projectPath?.split('/').pop() ?? 'No project'}</span>
-        </span>
+        </button>
         {state.gitStatus && state.gitStatus.branch !== 'none' && (
           <span className="flex items-center gap-1 px-1.5 py-0.5 opacity-75">
             <GitBranch size={10} />

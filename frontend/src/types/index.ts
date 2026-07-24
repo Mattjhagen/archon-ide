@@ -69,6 +69,25 @@ export interface ChatResponse {
   };
 }
 
+export interface AiJobLog {
+  id: string;
+  sequence: number;
+  created_at: string;
+  kind: string;
+  summary: string;
+}
+
+export interface AiJob {
+  id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'timed_out';
+  response: ChatResponse | null;
+  error: string | null;
+  logs: AiJobLog[];
+  created_at: string;
+  updated_at: string;
+  expires_at: string;
+}
+
 export interface ProviderInfo {
   id: string;
   name: string;
