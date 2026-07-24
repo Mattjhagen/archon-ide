@@ -462,6 +462,10 @@ pub async fn list_providers() -> HttpResponse {
         name: "OpenCode (Home Server)".to_string(),
         models: vec![
             ModelInfo {
+                id: "opencode/north-mini-code-free".to_string(),
+                name: "North Mini Code (Free)".to_string(),
+            },
+            ModelInfo {
                 id: "opencode/big-pickle".to_string(),
                 name: "Big Pickle".to_string(),
             },
