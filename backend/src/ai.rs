@@ -2,6 +2,8 @@ use actix_web::{body::to_bytes, web, HttpMessage, HttpRequest, HttpResponse};
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
+use std::path::Path;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -53,6 +55,7 @@ pub struct ChatReq {
     pub reasoning_effort: ReasoningEffort,
     #[serde(default)]
     pub fallback_models: Vec<FallbackModel>,
+    pub project_id: Option<Uuid>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -322,6 +325,15 @@ pub struct ChatResponse {
     pub tokens_used: TokenUsage,
     pub reasoning_effort: ReasoningEffort,
     pub credit_units: usize,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub generated_files: Vec<GeneratedFile>,
+}
+
+#[derive(Clone, Serialize)]
+pub struct GeneratedFile {
+    pub path: String,
+    pub content: String,
+    pub mime_type: String,
 }
 
 fn chat_response(
@@ -332,6 +344,18 @@ fn chat_response(
     output: usize,
     effort: ReasoningEffort,
 ) -> HttpResponse {
+    chat_response_with_files(content, model, provider, input, output, effort, Vec::new())
+}
+
+fn chat_response_with_files(
+    content: String,
+    model: &str,
+    provider: &str,
+    input: usize,
+    output: usize,
+    effort: ReasoningEffort,
+    generated_files: Vec<GeneratedFile>,
+) -> HttpResponse {
     let billable_blocks = (input + output).max(1).div_ceil(1000);
     HttpResponse::Ok().json(ChatResponse {
         content,
@@ -340,6 +364,7 @@ fn chat_response(
         tokens_used: TokenUsage { input, output },
         reasoning_effort: effort,
         credit_units: billable_blocks * effort.multiplier(),
+        generated_files,
     })
 }
 
@@ -535,7 +560,7 @@ pub async fn chat(body: web::Json<ChatReq>) -> HttpResponse {
             .await
         }
         "ollama" => chat_ollama(&body.messages, model, max_tokens, temperature, effort).await,
-        "opencode_local" => chat_opencode(&body.messages, model, effort).await,
+        "opencode_local" => chat_opencode(&body.messages, model, effort, body.project_id).await,
         "mock" if mock_provider_enabled() => chat_mock(&body.messages, model, effort).await,
         "mock" => HttpResponse::ServiceUnavailable()
             .json(serde_json::json!({"error": "The demo provider is disabled."})),
@@ -850,6 +875,7 @@ async fn chat_opencode(
     messages: &[ChatMessage],
     model: &str,
     effort: ReasoningEffort,
+    project_id: Option<Uuid>,
 ) -> HttpResponse {
     let base_url = match std::env::var("OPENCODE_BASE_URL") {
         Ok(value) if !value.is_empty() => value.trim_end_matches('/').to_string(),
@@ -963,18 +989,29 @@ async fn chat_opencode(
             "text": prompt
         }]
     });
+    let workspace_relative = project_id.map(|id| format!("archon-workspaces/{id}"));
+    let workspace_instruction = workspace_relative.as_ref().map(|workspace| {
+        format!(
+            "This Archon build is attached to a project. Create `{workspace}` if needed and write every generated project file inside it. Treat `{workspace}` as the workspace root and never write project files outside it."
+        )
+    });
     let mode_instruction = if build_mode {
         "You are already in build mode and the user has approved execution. Implement the request now, use the available file tools, and verify the result. Never claim you are in plan mode. Ignore any earlier assistant statement that said execution still needs confirmation. Make reasonable implementation decisions yourself; ask only when a missing secret or an irreversible choice makes progress impossible."
     } else {
         "The user explicitly requested planning. Work in read-only plan mode, produce a concise implementation plan, and ask only when a decision is genuinely required."
     };
-    request["system"] = serde_json::json!(if context.is_empty() {
+    let mut system = if context.is_empty() {
         mode_instruction.to_string()
     } else {
         format!(
             "{mode_instruction}\n\nContinue with this relevant conversation memory:\n\n{context}"
         )
-    });
+    };
+    if let Some(workspace_instruction) = workspace_instruction {
+        system.push_str("\n\n");
+        system.push_str(&workspace_instruction);
+    }
+    request["system"] = serde_json::json!(system);
 
     let response = client
         .post(format!("{base_url}/session/{session_id}/message"))
@@ -1027,14 +1064,160 @@ async fn chat_opencode(
 
     let input_tokens = value["info"]["tokens"]["input"].as_u64().unwrap_or(0) as usize;
     let output_tokens = value["info"]["tokens"]["output"].as_u64().unwrap_or(0) as usize;
-    chat_response(
+    let generated_files = if let Some(workspace) = workspace_relative {
+        collect_opencode_files(&client, &base_url, &password, &workspace)
+            .await
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    chat_response_with_files(
         content,
         model,
         "opencode_local",
         input_tokens,
         output_tokens,
         effort,
+        generated_files,
     )
+}
+
+#[derive(Deserialize)]
+struct OpenCodeFileNode {
+    path: String,
+    #[serde(rename = "type")]
+    kind: String,
+    #[serde(default)]
+    ignored: bool,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeFileContent {
+    content: String,
+}
+
+async fn collect_opencode_files(
+    client: &Client,
+    base_url: &str,
+    password: &str,
+    workspace: &str,
+) -> Result<Vec<GeneratedFile>, reqwest::Error> {
+    const MAX_FILES: usize = 200;
+    const MAX_TOTAL_BYTES: usize = 3 * 1024 * 1024;
+
+    let mut directories = VecDeque::from([workspace.to_string()]);
+    let mut files = Vec::new();
+    let mut total_bytes = 0usize;
+
+    while let Some(directory) = directories.pop_front() {
+        let nodes = client
+            .get(format!("{base_url}/file"))
+            .basic_auth("opencode", Some(password))
+            .query(&[("path", directory.as_str())])
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Vec<OpenCodeFileNode>>()
+            .await?;
+
+        for node in nodes {
+            if node.ignored || files.len() >= MAX_FILES {
+                continue;
+            }
+            if node.kind == "directory" {
+                directories.push_back(node.path);
+                continue;
+            }
+            if node.kind != "file" || !is_syncable_text_file(&node.path) {
+                continue;
+            }
+            let Some(relative_path) = node
+                .path
+                .strip_prefix(workspace)
+                .map(|path| path.trim_start_matches('/'))
+                .filter(|path| !path.is_empty() && !path.split('/').any(|part| part == ".."))
+            else {
+                continue;
+            };
+
+            let file = client
+                .get(format!("{base_url}/file/content"))
+                .basic_auth("opencode", Some(password))
+                .query(&[("path", node.path.as_str())])
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<OpenCodeFileContent>()
+                .await?;
+            total_bytes += file.content.len();
+            if total_bytes > MAX_TOTAL_BYTES {
+                return Ok(files);
+            }
+            files.push(GeneratedFile {
+                path: relative_path.to_string(),
+                content: file.content,
+                mime_type: mime_type_for_path(relative_path).to_string(),
+            });
+        }
+    }
+
+    Ok(files)
+}
+
+fn is_syncable_text_file(path: &str) -> bool {
+    let name = Path::new(path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    if name.starts_with('.') {
+        return matches!(name, ".gitignore" | ".env.example");
+    }
+    matches!(
+        Path::new(path)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str(),
+        "html"
+            | "css"
+            | "js"
+            | "mjs"
+            | "cjs"
+            | "ts"
+            | "tsx"
+            | "jsx"
+            | "json"
+            | "md"
+            | "txt"
+            | "swift"
+            | "py"
+            | "rs"
+            | "toml"
+            | "yaml"
+            | "yml"
+            | "xml"
+            | "svg"
+            | "sh"
+    )
+}
+
+fn mime_type_for_path(path: &str) -> &'static str {
+    match Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "html" => "text/html",
+        "css" => "text/css",
+        "js" | "mjs" | "cjs" => "text/javascript",
+        "json" => "application/json",
+        "svg" => "image/svg+xml",
+        "md" => "text/markdown",
+        _ => "text/plain",
+    }
 }
 
 fn should_use_build_mode(prompt: &str) -> bool {
@@ -1130,7 +1313,7 @@ pub async fn complete(body: web::Json<CompleteReq>) -> HttpResponse {
 
 #[cfg(test)]
 mod mode_tests {
-    use super::should_use_build_mode;
+    use super::{is_syncable_text_file, mime_type_for_path, should_use_build_mode};
 
     #[test]
     fn approval_language_switches_to_build_mode() {
@@ -1166,5 +1349,31 @@ mod mode_tests {
         ] {
             assert!(should_use_build_mode(prompt), "{prompt}");
         }
+    }
+
+    #[test]
+    fn project_file_sync_accepts_source_files_and_rejects_secrets() {
+        for path in [
+            "index.html",
+            "src/app.tsx",
+            "styles/site.css",
+            ".gitignore",
+            ".env.example",
+        ] {
+            assert!(is_syncable_text_file(path), "{path}");
+        }
+
+        for path in [".env", ".git/config", "image.png", "archive.zip"] {
+            assert!(!is_syncable_text_file(path), "{path}");
+        }
+    }
+
+    #[test]
+    fn project_file_sync_reports_useful_mime_types() {
+        assert_eq!(mime_type_for_path("index.html"), "text/html");
+        assert_eq!(mime_type_for_path("style.css"), "text/css");
+        assert_eq!(mime_type_for_path("app.js"), "text/javascript");
+        assert_eq!(mime_type_for_path("README.md"), "text/markdown");
+        assert_eq!(mime_type_for_path("main.swift"), "text/plain");
     }
 }
