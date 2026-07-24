@@ -12,13 +12,16 @@ describe('SetupScreen Accessibility and Product Truth', () => {
     root.unmount();
   });
 
-  it('mock provider clearly indicates simulated responses', async () => {
+  it('offers only production providers during setup', async () => {
     const container = document.createElement('div');
     const root = createRoot(container);
     act(() => { root.render(<SetupScreen appearance="obsidian" onAppearanceChange={vi.fn()} onComplete={vi.fn()} />); });
     const continueButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('Continue'));
     await act(async () => { continueButton?.click(); });
-    expect(container.textContent).toMatch(/Simulated mock responses \(not real analysis\)/i);
+    expect(container.textContent).toMatch(/GPT-5\.6 Terra/i);
+    expect(container.textContent).toMatch(/Claude Sonnet 5/i);
+    expect(container.textContent).toMatch(/Gemini 3\.6 Flash/i);
+    expect(container.textContent).not.toMatch(/mock|simulated/i);
     expect(container.querySelector('[role="radiogroup"][aria-label="Select AI provider"]')).not.toBeNull();
     root.unmount();
   });

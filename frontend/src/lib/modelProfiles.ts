@@ -22,25 +22,25 @@ const profiles: Record<string, ModelProfile> = {
     pace: 'Balanced',
     capabilities: [{ label: 'Native reasoning', state: 'available' }, { label: 'Long task context', state: 'provider' }, { label: 'Agent tools', state: 'planned' }],
   },
-  'anthropic/claude-sonnet-4-20250514': {
+  'anthropic/claude-sonnet-5': {
     description: 'Strong code understanding and deliberate implementation planning.',
     bestFor: 'Refactors and code review',
     pace: 'Balanced',
     capabilities: [{ label: 'Adaptive thinking', state: 'available' }, { label: 'Long task context', state: 'provider' }, { label: 'Agent tools', state: 'planned' }],
   },
-  'anthropic/claude-haiku-4-20250414': {
+  'anthropic/claude-haiku-4-5': {
     description: 'Fast iteration for focused questions and smaller edits.',
     bestFor: 'Quick analysis and edits',
     pace: 'Fast',
-    capabilities: [{ label: 'Adaptive thinking', state: 'available' }, { label: 'Long task context', state: 'provider' }, { label: 'Agent tools', state: 'planned' }],
+    capabilities: [{ label: 'Extended thinking', state: 'available' }, { label: 'Long task context', state: 'provider' }, { label: 'Agent tools', state: 'planned' }],
   },
-  'gemini/gemini-3-pro-preview': {
+  'gemini/gemini-3.1-pro-preview': {
     description: 'High-capacity model for broad problem exploration and complex code.',
     bestFor: 'Architecture and difficult debugging',
     pace: 'Deliberate',
     capabilities: [{ label: 'Thinking levels', state: 'available' }, { label: 'Large context', state: 'provider' }, { label: 'Agent tools', state: 'planned' }],
   },
-  'gemini/gemini-3-flash-preview': {
+  'gemini/gemini-3.6-flash': {
     description: 'Fast Gemini option for iterative coding work and analysis.',
     bestFor: 'Rapid implementation loops',
     pace: 'Fast',
