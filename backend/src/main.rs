@@ -10,12 +10,15 @@ use actix_cors::Cors;
 use actix_files as fs_serve;
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
 use std::sync::Arc;
+use std::collections::HashMap;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 pub struct AppState {
     pub open_project: Arc<RwLock<Option<String>>>,
     pub terminal_sessions: terminal::TerminalManager,
     pub agent_tasks: Arc<agent::repository::TaskStore>,
+    pub ai_jobs: Arc<RwLock<HashMap<Uuid, ai::AiJob>>>,
 }
 
 #[actix_web::main]
@@ -32,6 +35,7 @@ async fn main() -> std::io::Result<()> {
         open_project: Arc::new(RwLock::new(None)),
         terminal_sessions: terminal::TerminalManager::new(),
         agent_tasks: agent::repository::TaskStore::new(),
+        ai_jobs: Arc::new(RwLock::new(HashMap::new())),
     });
 
     let dist = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -69,6 +73,8 @@ async fn main() -> std::io::Result<()> {
                 .route("/git/blame", web::post().to(git::blame))
                 .route("/ai/providers", web::get().to(ai::list_providers))
                 .route("/ai/chat", web::post().to(ai::chat))
+                .route("/ai/jobs", web::post().to(ai::create_job))
+                .route("/ai/jobs/{id}", web::get().to(ai::get_job))
                 .route("/ai/complete", web::post().to(ai::complete))
                 .route("/term/create", web::post().to(terminal::create_session))
                 .route("/term/input", web::post().to(terminal::write_input))
