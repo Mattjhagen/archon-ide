@@ -7,7 +7,6 @@ primary_region = "ord"
 [env]
   PORT = "8080"
   SUPABASE_URL = "https://sbbkmdnyzzidywjkdhye.supabase.co"
-  SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ckOphEoAmEGNikWqtuvKbQ_iJ1FEgZO"
 
 [http_service]
   internal_port = 8080
