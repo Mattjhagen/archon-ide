@@ -47,7 +47,7 @@ export function SetupScreen({ appearance, onAppearanceChange, onComplete }: Setu
           <>
             <div className="setup-kicker">01 · MAKE IT YOURS</div>
             <h1>Choose your workspace.</h1>
-            <p className="setup-lede">Three distinct environments, one serious coding tool. You can switch any time.</p>
+            <p className="setup-lede">Four distinct environments, one serious coding tool. You can switch any time.</p>
             <div className="theme-grid" role="radiogroup" aria-label="Select appearance theme">
               {appearances.map(item => (
                 <button key={item.id} role="radio" aria-checked={appearance === item.id} className={`theme-choice theme-${item.id} ${appearance === item.id ? 'selected' : ''} focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500`} onClick={() => onAppearanceChange(item.id)}>

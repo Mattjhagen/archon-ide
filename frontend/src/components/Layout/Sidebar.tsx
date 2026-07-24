@@ -22,6 +22,13 @@ export function Sidebar({ state, onOpenFile, onRefreshGit, onUpdate, width }: Si
       className="flex flex-col flex-shrink-0 h-full"
       style={{ width, background: 'var(--bg-base)', borderRight: '1px solid var(--border-faint)' }}
     >
+      {state.projectPath && (
+        <div className="px-3 py-2.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-faint)', background: 'var(--bg-surface)' }}>
+          <span className="block text-[9px] font-semibold uppercase tracking-widest" style={{ color: 'var(--accent-hover)' }}>Active project</span>
+          <strong className="block mt-1 truncate text-[12px]" style={{ color: 'var(--text-primary)' }}>{state.projectPath.split('/').filter(Boolean).pop()}</strong>
+          <span className="block mt-0.5 truncate text-[9px]" title={state.projectPath} style={{ color: 'var(--text-muted)' }}>{state.projectPath}</span>
+        </div>
+      )}
       <div className="flex flex-shrink-0" style={{ borderBottom: '1px solid var(--border-faint)' }}>
         <TabBtn active={state.sidebarPanel === 'files'} onClick={() => onUpdate({ sidebarPanel: 'files' })} icon={<Folder size={13} />} label="Files" />
         <TabBtn active={state.sidebarPanel === 'git'} onClick={() => onUpdate({ sidebarPanel: 'git' })} icon={<GitBranch size={13} />} label="Git" badge={state.gitStatus?.files.length} />

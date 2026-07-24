@@ -1,14 +1,39 @@
-import { FolderOpen, Terminal, Cpu, Sparkles, ArrowRight, ExternalLink } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FolderOpen, Terminal, Cpu, Sparkles, ArrowRight, ExternalLink, Cloud, Clock3 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface WelcomeScreenProps {
   onOpenFolder: () => void;
   onOpenPath: () => void;
+  onOpenProject?: (path: string) => void;
 }
 
-export function WelcomeScreen({ onOpenFolder, onOpenPath }: WelcomeScreenProps) {
+interface CloudProject {
+  id: string;
+  name: string;
+  description: string | null;
+  web_path: string | null;
+  updated_at: string;
+}
+
+export function WelcomeScreen({ onOpenFolder, onOpenPath, onOpenProject }: WelcomeScreenProps) {
+  const [projects, setProjects] = useState<CloudProject[]>([]);
+
+  useEffect(() => {
+    void supabase
+      .from('projects')
+      .select('id,name,description,web_path,updated_at')
+      .not('web_path', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(6)
+      .then(({ data, error }) => {
+        if (!error) setProjects((data ?? []) as CloudProject[]);
+      });
+  }, []);
+
   return (
-    <div className="flex-1 flex items-center justify-center anim-fade-in" style={{ background: 'var(--bg-void)' }}>
-      <div className="text-center max-w-lg px-8" style={{ animation: 'fadeInUp 0.7s var(--ease) both' }}>
+    <div className="flex-1 overflow-y-auto anim-fade-in" style={{ background: 'var(--bg-void)' }}>
+      <div className="text-center max-w-3xl mx-auto px-8 py-14" style={{ animation: 'fadeInUp 0.7s var(--ease) both' }}>
         {/* Animated logo */}
         <div className="mb-12" style={{ animation: 'float 6s ease-in-out infinite' }}>
           <div
@@ -29,6 +54,32 @@ export function WelcomeScreen({ onOpenFolder, onOpenPath }: WelcomeScreenProps) 
             </div>
           </div>
         </div>
+
+        {projects.length > 0 && (
+          <section className="mt-12 text-left">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--accent-hover)' }}>Recent projects</span>
+                <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>Synced from your Relay account</p>
+              </div>
+              <Cloud size={14} style={{ color: 'var(--success)' }} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {projects.map(project => (
+                <button
+                  key={project.id}
+                  onClick={() => project.web_path && onOpenProject?.(project.web_path)}
+                  className="p-3.5 rounded-xl text-left"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-faint)' }}
+                >
+                  <strong className="block truncate text-[11px]" style={{ color: 'var(--text-primary)' }}>{project.name}</strong>
+                  <span className="block truncate text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>{project.web_path}</span>
+                  <span className="flex items-center gap-1 text-[8px] mt-2" style={{ color: 'var(--text-muted)' }}><Clock3 size={9} /> {new Date(project.updated_at).toLocaleDateString()}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Title */}
         <h1
@@ -70,7 +121,7 @@ export function WelcomeScreen({ onOpenFolder, onOpenPath }: WelcomeScreenProps) 
         </div>
 
         {/* Keyboard shortcuts */}
-        <div className="mt-14 flex items-center justify-center gap-4 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        <div className="mt-12 flex items-center justify-center gap-4 text-[11px]" style={{ color: 'var(--text-muted)' }}>
           <span className="flex items-center gap-1.5"><kbd>Ctrl+S</kbd> Save</span>
           <span style={{ color: 'var(--border-default)' }}>·</span>
           <span className="flex items-center gap-1.5"><kbd>Ctrl+B</kbd> Sidebar</span>
