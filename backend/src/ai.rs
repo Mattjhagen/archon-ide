@@ -1,7 +1,12 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{body::to_bytes, web, HttpMessage, HttpRequest, HttpResponse};
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use uuid::Uuid;
+
+use crate::auth::AuthUser;
+use crate::AppState;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -35,7 +40,7 @@ impl ReasoningEffort {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct ChatReq {
     pub messages: Vec<ChatMessage>,
     pub model: Option<String>,
@@ -46,6 +51,239 @@ pub struct ChatReq {
     pub api_key: Option<String>,
     #[serde(default)]
     pub reasoning_effort: ReasoningEffort,
+    #[serde(default)]
+    pub fallback_models: Vec<FallbackModel>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct FallbackModel {
+    pub provider: String,
+    pub model: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AiJobStatus {
+    Queued,
+    Running,
+    Completed,
+    Failed,
+    TimedOut,
+}
+
+#[derive(Clone, Serialize)]
+pub struct AiJob {
+    pub id: Uuid,
+    #[serde(skip_serializing)]
+    pub user_id: String,
+    pub status: AiJobStatus,
+    pub response: Option<serde_json::Value>,
+    pub error: Option<String>,
+    pub logs: Vec<AiJobLog>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Serialize)]
+pub struct AiJobLog {
+    pub id: Uuid,
+    pub sequence: usize,
+    pub created_at: DateTime<Utc>,
+    pub kind: String,
+    pub summary: String,
+}
+
+const DEFAULT_AI_JOB_TIMEOUT_SECONDS: u64 = 900;
+const MAX_AI_JOB_TIMEOUT_SECONDS: u64 = 1800;
+
+pub async fn create_job(
+    request: HttpRequest,
+    state: web::Data<AppState>,
+    body: web::Json<ChatReq>,
+) -> HttpResponse {
+    let Some(user) = request.extensions().get::<AuthUser>().cloned() else {
+        return HttpResponse::Unauthorized()
+            .json(serde_json::json!({"error": "authentication required"}));
+    };
+
+    let timeout_seconds = std::env::var("AI_JOB_TIMEOUT_SECONDS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_AI_JOB_TIMEOUT_SECONDS)
+        .clamp(60, MAX_AI_JOB_TIMEOUT_SECONDS);
+
+    let now = Utc::now();
+    let job = AiJob {
+        id: Uuid::new_v4(),
+        user_id: user.id,
+        status: AiJobStatus::Queued,
+        response: None,
+        error: None,
+        logs: vec![AiJobLog {
+            id: Uuid::new_v4(),
+            sequence: 1,
+            created_at: now,
+            kind: "planning".to_string(),
+            summary: "Build queued on Archon Cloud".to_string(),
+        }],
+        created_at: now,
+        updated_at: now,
+        expires_at: now + ChronoDuration::seconds(timeout_seconds as i64),
+    };
+    let job_id = job.id;
+    state.ai_jobs.write().await.insert(job_id, job.clone());
+
+    let jobs = state.ai_jobs.clone();
+    let chat_request = body.into_inner();
+    actix_web::rt::spawn(async move {
+        if let Some(stored) = jobs.write().await.get_mut(&job_id) {
+            stored.status = AiJobStatus::Running;
+            stored.updated_at = Utc::now();
+            push_job_log(stored, "message", "Background build started");
+        }
+
+        let result = tokio::time::timeout(Duration::from_secs(timeout_seconds), async {
+            let mut attempts = vec![(
+                chat_request.provider.clone(),
+                chat_request.model.clone(),
+            )];
+            attempts.extend(
+                chat_request
+                    .fallback_models
+                    .iter()
+                    .map(|fallback| (Some(fallback.provider.clone()), Some(fallback.model.clone()))),
+            );
+
+            for (index, (provider, model)) in attempts.iter().enumerate() {
+                if let Some(stored) = jobs.write().await.get_mut(&job_id) {
+                    let provider_label = provider.as_deref().unwrap_or("automatic");
+                    let model_label = model.as_deref().unwrap_or("default");
+                    let summary = if index == 0 {
+                        format!("Starting {provider_label} · {model_label}")
+                    } else {
+                        format!(
+                            "Credit limit reached — handing off to {provider_label} · {model_label}"
+                        )
+                    };
+                    push_job_log(
+                        stored,
+                        if index == 0 { "model_call" } else { "message" },
+                        &summary,
+                    );
+                }
+
+                let mut attempt = chat_request.clone();
+                attempt.provider = provider.clone();
+                attempt.model = model.clone();
+                attempt.fallback_models.clear();
+
+                let response = chat(web::Json(attempt)).await;
+                let status = response.status();
+                let bytes = to_bytes(response.into_body())
+                    .await
+                    .map_err(|_| "Could not read the AI response".to_string())?;
+                let payload = serde_json::from_slice::<serde_json::Value>(&bytes)
+                    .unwrap_or_else(|_| serde_json::json!({
+                        "error": String::from_utf8_lossy(&bytes)
+                    }));
+
+                if status.is_success() {
+                    return Ok(payload);
+                }
+
+                let error = provider_error_message(&payload);
+                if !is_credit_limit_message(&error) || index == attempts.len() - 1 {
+                    return Err(error);
+                }
+            }
+
+            Err("No configured AI model could continue the build.".to_string())
+        })
+        .await;
+
+        let mut all_jobs = jobs.write().await;
+        let Some(stored) = all_jobs.get_mut(&job_id) else { return };
+        stored.updated_at = Utc::now();
+
+        match result {
+            Err(_) => {
+                stored.status = AiJobStatus::TimedOut;
+                stored.error = Some(format!(
+                    "Build exceeded the {} minute time limit",
+                    timeout_seconds / 60
+                ));
+                push_job_log(stored, "error", "Build timed out");
+            }
+            Ok(Ok(payload)) => {
+                stored.status = AiJobStatus::Completed;
+                stored.response = Some(payload);
+                push_job_log(stored, "completion", "Build completed");
+            }
+            Ok(Err(error)) => {
+                stored.status = AiJobStatus::Failed;
+                push_job_log(stored, "error", &format!("Build failed: {error}"));
+                stored.error = Some(error);
+            }
+        }
+    });
+
+    HttpResponse::Accepted().json(job)
+}
+
+fn push_job_log(job: &mut AiJob, kind: &str, summary: &str) {
+    job.logs.push(AiJobLog {
+        id: Uuid::new_v4(),
+        sequence: job.logs.len() + 1,
+        created_at: Utc::now(),
+        kind: kind.to_string(),
+        summary: summary.to_string(),
+    });
+}
+
+fn provider_error_message(payload: &serde_json::Value) -> String {
+    let error = payload.get("error").unwrap_or(payload);
+    error
+        .as_str()
+        .map(str::to_owned)
+        .or_else(|| error.get("message").and_then(|value| value.as_str()).map(str::to_owned))
+        .or_else(|| error.get("detail").and_then(|value| value.as_str()).map(str::to_owned))
+        .or_else(|| payload.get("detail").and_then(|value| value.as_str()).map(str::to_owned))
+        .unwrap_or_else(|| error.to_string())
+}
+
+fn is_credit_limit_message(message: &str) -> bool {
+    let message = message.to_lowercase();
+    [
+        "credit",
+        "quota",
+        "billing",
+        "payment required",
+        "insufficient_quota",
+        "insufficient funds",
+        "usage limit",
+        "spending limit",
+        "rate limit",
+    ]
+    .iter()
+    .any(|signal| message.contains(signal))
+}
+
+pub async fn get_job(
+    request: HttpRequest,
+    state: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> HttpResponse {
+    let Some(user) = request.extensions().get::<AuthUser>().cloned() else {
+        return HttpResponse::Unauthorized()
+            .json(serde_json::json!({"error": "authentication required"}));
+    };
+
+    let jobs = state.ai_jobs.read().await;
+    match jobs.get(&path.into_inner()) {
+        Some(job) if job.user_id == user.id => HttpResponse::Ok().json(job),
+        _ => HttpResponse::NotFound().json(serde_json::json!({"error": "job not found"})),
+    }
 }
 
 #[derive(Deserialize, Clone)]
@@ -661,22 +899,47 @@ async fn chat_opencode(
         .collect::<Vec<_>>()
         .join("\n\n");
 
+    let build_mode = should_use_build_mode(&prompt);
+    let agent = if build_mode { "build" } else { "plan" };
     let mut request = serde_json::json!({
-        "agent": "plan",
+        "agent": agent,
         "model": {
             "providerID": provider_id,
             "modelID": model_id
+        },
+        "tools": {
+            "invalid": false,
+            "question": false,
+            "bash": build_mode,
+            "read": build_mode,
+            "glob": build_mode,
+            "grep": build_mode,
+            "edit": build_mode,
+            "write": build_mode,
+            "task": false,
+            "webfetch": false,
+            "todowrite": build_mode,
+            "websearch": false,
+            "skill": false,
+            "apply_patch": build_mode
         },
         "parts": [{
             "type": "text",
             "text": prompt
         }]
     });
-    if !context.is_empty() {
-        request["system"] = serde_json::json!(format!(
-            "Continue the following conversation and return a concise, directly usable response.\n\n{context}"
-        ));
-    }
+    let mode_instruction = if build_mode {
+        "You are already in build mode and the user has approved execution. Implement the request now, use the available file tools, and verify the result. Never claim you are in plan mode. Ignore any earlier assistant statement that said execution still needs confirmation. Make reasonable implementation decisions yourself; ask only when a missing secret or an irreversible choice makes progress impossible."
+    } else {
+        "The user explicitly requested planning. Work in read-only plan mode, produce a concise implementation plan, and ask only when a decision is genuinely required."
+    };
+    request["system"] = serde_json::json!(if context.is_empty() {
+        mode_instruction.to_string()
+    } else {
+        format!(
+            "{mode_instruction}\n\nContinue with this relevant conversation memory:\n\n{context}"
+        )
+    });
 
     let response = client
         .post(format!("{base_url}/session/{session_id}/message"))
@@ -739,6 +1002,58 @@ async fn chat_opencode(
     )
 }
 
+fn should_use_build_mode(prompt: &str) -> bool {
+    let normalized = prompt
+        .to_lowercase()
+        .replace(['’', '\''], "")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    let build_approvals = [
+        "build it",
+        "build this",
+        "start building",
+        "implement it",
+        "implement this",
+        "go ahead",
+        "proceed",
+        "execute the plan",
+        "exit plan mode",
+        "make the changes",
+        "apply the changes",
+        "create the files",
+        "ship it",
+    ]
+    .iter()
+    .any(|phrase| normalized.contains(phrase));
+
+    if build_approvals {
+        return true;
+    }
+
+    let explicit_plan_requests = [
+        "plan ",
+        "make a plan",
+        "planning only",
+        "do not build",
+        "dont build",
+        "read only",
+        "review ",
+        "brainstorm",
+        "compare ",
+        "show me options",
+        "what are my options",
+        "which framework",
+        "what framework",
+        "recommend an approach",
+    ];
+
+    !explicit_plan_requests
+        .iter()
+        .any(|phrase| normalized.contains(phrase))
+}
+
 async fn chat_mock(messages: &[ChatMessage], model: &str, effort: ReasoningEffort) -> HttpResponse {
     let response = "## Demo mode\n\nI haven't read your repository, so I won't invent a summary, diagnosis, or code change.\n\nTo get a useful answer:\n1. Select OpenAI, Anthropic, Gemini, or Ollama in Settings and add a key when required.\n2. Open or connect a workspace.\n3. Use **Agent Tasks** for repository investigation, edits, and verification; use **Chat** for focused questions about an open file.\n\nA real Archon task reports the files it inspected, actions it took, verification it ran, and any genuine blocker.".to_string();
 
@@ -776,4 +1091,45 @@ pub async fn complete(body: web::Json<CompleteReq>) -> HttpResponse {
         "model": "local",
         "provider": "builtin",
     }))
+}
+
+#[cfg(test)]
+mod mode_tests {
+    use super::should_use_build_mode;
+
+    #[test]
+    fn approval_language_switches_to_build_mode() {
+        for prompt in [
+            "Build it",
+            "Go ahead and implement this",
+            "Proceed with the plan",
+            "Exit plan mode and build",
+        ] {
+            assert!(should_use_build_mode(prompt), "{prompt}");
+        }
+    }
+
+    #[test]
+    fn planning_language_remains_in_plan_mode() {
+        for prompt in [
+            "Plan a weather dashboard",
+            "What framework should I use?",
+            "Review these requirements",
+            "Do not build anything yet, show me options",
+        ] {
+            assert!(!should_use_build_mode(prompt), "{prompt}");
+        }
+    }
+
+    #[test]
+    fn normal_builder_requests_execute_without_extra_confirmation() {
+        for prompt in [
+            "A weather dashboard with animated icons",
+            "Add authentication",
+            "Fix the navigation bug",
+            "Make the cards more polished",
+        ] {
+            assert!(should_use_build_mode(prompt), "{prompt}");
+        }
+    }
 }
