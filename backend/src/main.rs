@@ -17,7 +17,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 pub struct AppState {
-    pub open_project: Arc<RwLock<Option<String>>>,
+    pub open_project: Arc<RwLock<HashMap<String, String>>>,
     pub terminal_sessions: terminal::TerminalManager,
     pub agent_tasks: Arc<agent::repository::TaskStore>,
     pub ai_jobs: Arc<RwLock<HashMap<Uuid, ai::AiJob>>>,
@@ -40,7 +40,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or(2_097_152); // 2 MB default
 
     let state = web::Data::new(AppState {
-        open_project: Arc::new(RwLock::new(None)),
+        open_project: Arc::new(RwLock::new(HashMap::new())),
         terminal_sessions: terminal::TerminalManager::new(),
         agent_tasks: agent::repository::TaskStore::new(),
         ai_jobs: Arc::new(RwLock::new(HashMap::new())),

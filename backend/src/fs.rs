@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse, HttpMessage};
 use ignore::WalkBuilder;
 use serde::{Deserialize, Serialize};
 use similar::{ChangeTag, TextDiff};
@@ -6,6 +6,26 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::AppState;
+use crate::auth::AuthUser;
+
+fn get_user_project(state: &web::Data<AppState>, user_id: &str) -> Option<String> {
+    let projects = state.open_project.blocking_read();
+    projects.get(user_id).cloned()
+}
+
+fn validate_path_under_project(path: &str, project_root: &str) -> Result<PathBuf, HttpResponse> {
+    let canonical_path = PathBuf::from(path).canonicalize().map_err(|e| {
+        HttpResponse::BadRequest().json(serde_json::json!({"error": format!("Invalid path: {}", e)}))
+    })?;
+    let canonical_root = PathBuf::from(project_root).canonicalize().map_err(|e| {
+        HttpResponse::BadRequest().json(serde_json::json!({"error": format!("Invalid project root: {}", e)}))
+    })?;
+    if canonical_path.starts_with(&canonical_root) {
+        Ok(canonical_path)
+    } else {
+        Err(HttpResponse::Forbidden().json(serde_json::json!({"error": "Path is outside project directory"})))
+    }
+}
 
 #[derive(Deserialize)]
 pub struct ReadFileReq {
@@ -21,10 +41,22 @@ pub struct FileContent {
 }
 
 pub async fn read_file(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<ReadFileReq>,
 ) -> HttpResponse {
-    let path = PathBuf::from(&body.path);
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open. Call /api/project/open first."})),
+    };
+    let path = match validate_path_under_project(&body.path, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
     if !path.exists() {
         return HttpResponse::NotFound().json(serde_json::json!({"error": "File not found"}));
     }
@@ -56,10 +88,22 @@ pub struct WriteFileReq {
 }
 
 pub async fn write_file(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<WriteFileReq>,
 ) -> HttpResponse {
-    let path = PathBuf::from(&body.path);
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let path = match validate_path_under_project(&body.path, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
     if let Some(parent) = path.parent() {
         if let Err(e) = fs::create_dir_all(parent) {
             return HttpResponse::InternalServerError()
@@ -90,10 +134,22 @@ pub struct TreeNode {
 }
 
 pub async fn list_tree(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<TreeReq>,
 ) -> HttpResponse {
-    let root = PathBuf::from(&body.root);
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let root = match validate_path_under_project(&body.root, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
     if !root.exists() || !root.is_dir() {
         return HttpResponse::BadRequest()
             .json(serde_json::json!({"error": "Invalid root directory"}));
@@ -161,9 +217,14 @@ pub struct OpenProjectReq {
 }
 
 pub async fn open_project(
+    req: HttpRequest,
     state: web::Data<AppState>,
     body: web::Json<OpenProjectReq>,
 ) -> HttpResponse {
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
     let path = PathBuf::from(&body.path);
     if !path.exists() || !path.is_dir() {
         return HttpResponse::BadRequest()
@@ -171,7 +232,7 @@ pub async fn open_project(
     }
     {
         let mut proj = state.open_project.write().await;
-        *proj = Some(body.path.clone());
+        proj.insert(user.id, body.path.clone());
     }
     let tree = build_tree(&path, &path, 0, 8);
     HttpResponse::Ok().json(serde_json::json!({
@@ -186,10 +247,23 @@ pub struct MkdirReq {
 }
 
 pub async fn mkdir(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<MkdirReq>,
 ) -> HttpResponse {
-    match fs::create_dir_all(&body.path) {
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let path = match validate_path_under_project(&body.path, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
+    match fs::create_dir_all(&path) {
         Ok(_) => HttpResponse::Ok().json(serde_json::json!({"ok": true})),
         Err(e) => HttpResponse::InternalServerError()
             .json(serde_json::json!({"error": e.to_string()})),
@@ -203,10 +277,27 @@ pub struct RenameReq {
 }
 
 pub async fn rename(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<RenameReq>,
 ) -> HttpResponse {
-    match fs::rename(&body.from, &body.to) {
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let from = match validate_path_under_project(&body.from, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
+    let to = match validate_path_under_project(&body.to, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
+    match fs::rename(&from, &to) {
         Ok(_) => HttpResponse::Ok().json(serde_json::json!({"ok": true})),
         Err(e) => HttpResponse::InternalServerError()
             .json(serde_json::json!({"error": e.to_string()})),
@@ -219,10 +310,22 @@ pub struct DeleteReq {
 }
 
 pub async fn delete_path(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<DeleteReq>,
 ) -> HttpResponse {
-    let p = PathBuf::from(&body.path);
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let p = match validate_path_under_project(&body.path, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
     if p.is_dir() {
         match fs::remove_dir_all(&p) {
             Ok(_) => HttpResponse::Ok().json(serde_json::json!({"ok": true})),
@@ -252,10 +355,22 @@ pub struct SearchResult {
 }
 
 pub async fn search_files(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<SearchReq>,
 ) -> HttpResponse {
-    let root = PathBuf::from(&body.root);
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let root = match validate_path_under_project(&body.root, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
     let query = body.query.to_lowercase();
     let mut results = Vec::new();
 
@@ -295,10 +410,22 @@ pub struct ApplyDiffReq {
 }
 
 pub async fn apply_diff(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<ApplyDiffReq>,
 ) -> HttpResponse {
-    let path = PathBuf::from(&body.path);
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let path = match validate_path_under_project(&body.path, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
     let old_content = fs::read_to_string(&path).unwrap_or_default();
 
     let diff = TextDiff::from_lines(&old_content, &body.new_content);
@@ -356,10 +483,22 @@ pub struct DiffHunk {
 }
 
 pub async fn preview_diff(
-    _state: web::Data<AppState>,
+    req: HttpRequest,
+    state: web::Data<AppState>,
     body: web::Json<PreviewDiffReq>,
 ) -> HttpResponse {
-    let path = PathBuf::from(&body.path);
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let project = match get_user_project(&state, &user.id) {
+        Some(p) => p,
+        None => return HttpResponse::BadRequest().json(serde_json::json!({"error": "No project open"})),
+    };
+    let path = match validate_path_under_project(&body.path, &project) {
+        Ok(p) => p,
+        Err(resp) => return resp,
+    };
     let old_content = fs::read_to_string(&path).unwrap_or_default();
     let diff = TextDiff::from_lines(&old_content, &body.new_content);
 

@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse, HttpMessage};
 use portable_pty::{CommandBuilder, PtySize, native_pty_system, PtyPair};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::sync::mpsc;
 
+use crate::auth::AuthUser;
+
 pub struct TerminalManager {
     pub sessions: Arc<Mutex<HashMap<String, TerminalSession>>>,
 }
@@ -14,6 +16,7 @@ pub struct TerminalManager {
 pub struct TerminalSession {
     pub pty: PtyPair,
     pub reader_tx: mpsc::Sender<String>,
+    pub user_id: String,
 }
 
 impl TerminalManager {
@@ -21,6 +24,10 @@ impl TerminalManager {
         Self {
             sessions: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    fn session_key(user_id: &str, session_id: &str) -> String {
+        format!("{}:{}", user_id, session_id)
     }
 }
 
@@ -39,10 +46,16 @@ pub struct TermSessionId {
 }
 
 pub async fn create_session(
+    req: HttpRequest,
     state: web::Data<crate::AppState>,
     body: web::Json<CreateTermReq>,
 ) -> HttpResponse {
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
     let id = uuid::Uuid::new_v4().to_string();
+    let key = TerminalManager::session_key(&user.id, &id);
     let pty_system = native_pty_system();
 
     let size = PtySize {
@@ -96,6 +109,7 @@ pub async fn create_session(
             let session = TerminalSession {
                 pty: pty_pair,
                 reader_tx: tx,
+                user_id: user.id,
             };
 
             state
@@ -103,7 +117,7 @@ pub async fn create_session(
                 .sessions
                 .lock()
                 .unwrap()
-                .insert(id.clone(), session);
+                .insert(key, session);
 
             HttpResponse::Ok().json(TermSessionId { id })
         }
@@ -119,11 +133,17 @@ pub struct TermInputReq {
 }
 
 pub async fn write_input(
+    req: HttpRequest,
     state: web::Data<crate::AppState>,
     body: web::Json<TermInputReq>,
 ) -> HttpResponse {
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let key = TerminalManager::session_key(&user.id, &body.id);
     let sessions = state.terminal_sessions.sessions.lock().unwrap();
-    if let Some(session) = sessions.get(&body.id) {
+    if let Some(session) = sessions.get(&key) {
         let mut writer = match session.pty.master.take_writer() {
             Ok(w) => w,
             Err(e) => {
@@ -149,11 +169,17 @@ pub struct TermResizeReq {
 }
 
 pub async fn resize(
+    req: HttpRequest,
     state: web::Data<crate::AppState>,
     body: web::Json<TermResizeReq>,
 ) -> HttpResponse {
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let key = TerminalManager::session_key(&user.id, &body.id);
     let sessions = state.terminal_sessions.sessions.lock().unwrap();
-    if let Some(session) = sessions.get(&body.id) {
+    if let Some(session) = sessions.get(&key) {
         let size = PtySize {
             rows: body.rows,
             cols: body.cols,
@@ -176,14 +202,20 @@ pub struct TermDestroyReq {
 }
 
 pub async fn destroy_session(
+    req: HttpRequest,
     state: web::Data<crate::AppState>,
     body: web::Json<TermDestroyReq>,
 ) -> HttpResponse {
+    let user = match req.extensions().get::<AuthUser>().cloned() {
+        Some(u) => u,
+        None => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "auth required"})),
+    };
+    let key = TerminalManager::session_key(&user.id, &body.id);
     state
         .terminal_sessions
         .sessions
         .lock()
         .unwrap()
-        .remove(&body.id);
+        .remove(&key);
     HttpResponse::Ok().json(serde_json::json!({"ok": true}))
 }
