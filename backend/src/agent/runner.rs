@@ -22,7 +22,6 @@
 // calling APIs required) and gives us a strict parse-time allowlist.
 // =============================================================
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use uuid::Uuid;

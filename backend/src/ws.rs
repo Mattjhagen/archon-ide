@@ -3,6 +3,7 @@ use actix_ws::Message;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
 pub async fn ws_handler(
     req: HttpRequest,
     body: web::Payload,
@@ -42,6 +43,7 @@ pub async fn ws_handler(
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct WsMessage {
     #[serde(rename = "type")]
     msg_type: String,
@@ -51,6 +53,7 @@ struct WsMessage {
 }
 
 #[derive(Serialize)]
+#[allow(dead_code)]
 struct WsResponse {
     #[serde(rename = "type")]
     msg_type: String,
@@ -59,6 +62,7 @@ struct WsResponse {
     payload: serde_json::Value,
 }
 
+#[allow(dead_code)]
 async fn handle_ws_message(msg: WsMessage) -> WsResponse {
     match msg.msg_type.as_str() {
         "ping" => WsResponse {

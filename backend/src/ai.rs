@@ -1099,6 +1099,7 @@ async fn chat_mock(messages: &[ChatMessage], model: &str, effort: ReasoningEffor
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 pub struct CompleteReq {
     pub file_path: String,
     pub content: String,

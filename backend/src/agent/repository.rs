@@ -19,7 +19,7 @@ use chrono::Utc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::agent::domain::{AgentEvent, AgentTask, EventKind, TaskStatus, TransitionError};
+use crate::agent::domain::{AgentEvent, AgentTask, TaskStatus, TransitionError};
 
 pub struct TaskStore {
     /// Primary task storage.
