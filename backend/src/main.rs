@@ -6,6 +6,8 @@ mod git;
 mod terminal;
 mod ws;
 
+use actix_web::web::PayloadConfig;
+
 use actix_cors::Cors;
 use actix_files as fs_serve;
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
@@ -19,6 +21,7 @@ pub struct AppState {
     pub terminal_sessions: terminal::TerminalManager,
     pub agent_tasks: Arc<agent::repository::TaskStore>,
     pub ai_jobs: Arc<RwLock<HashMap<Uuid, ai::AiJob>>>,
+    pub max_body_bytes: usize,
 }
 
 #[actix_web::main]
@@ -31,11 +34,17 @@ async fn main() -> std::io::Result<()> {
         .parse()
         .unwrap_or(3847);
 
+    let max_body_bytes: usize = std::env::var("MAX_BODY_BYTES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(2_097_152); // 2 MB default
+
     let state = web::Data::new(AppState {
         open_project: Arc::new(RwLock::new(None)),
         terminal_sessions: terminal::TerminalManager::new(),
         agent_tasks: agent::repository::TaskStore::new(),
         ai_jobs: Arc::new(RwLock::new(HashMap::new())),
+        max_body_bytes,
     });
 
     let dist = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -44,16 +53,29 @@ async fn main() -> std::io::Result<()> {
     log::info!("Serving frontend from {:?}", dist);
 
     HttpServer::new(move || {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
+        let allowed_origins = std::env::var("ALLOWED_ORIGINS")
+            .unwrap_or_else(|_| "https://relayapp.pro,https://app.relayapp.pro,http://localhost:3847,http://localhost:5173".to_string());
+
+        let mut cors_builder = Cors::default();
+        for origin in allowed_origins.split(',') {
+            let trimmed = origin.trim();
+            if !trimmed.is_empty() {
+                cors_builder = cors_builder.allowed_origin(trimmed);
+            }
+        }
+        let cors = cors_builder
+            .allowed_methods(["GET", "POST", "OPTIONS"])
+            .allowed_headers([
+                actix_web::http::header::CONTENT_TYPE,
+                actix_web::http::header::AUTHORIZATION,
+            ])
             .max_age(3600);
 
         App::new()
             .wrap(cors)
             .wrap(middleware::Logger::default())
             .app_data(state.clone())
+            .app_data(PayloadConfig::new(state.max_body_bytes))
             .route("/health", web::get().to(|| async { HttpResponse::Ok().json(serde_json::json!({"status": "ok"})) }))
             .service(web::scope("/api")
                 .wrap(middleware::from_fn(auth::require_auth))
