@@ -2,12 +2,26 @@ import Foundation
 import Combine
 import AuthenticationServices
 
+struct OAuthConfig {
+    let clientID: String
+    let authorizeURL: String
+    let redirectURI: String
+    let callbackScheme: String
+}
+
 class AuthManager: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var isSessionExpired: Bool = false
     
     static let shared = AuthManager()
     private let sessionStore: SessionStore
+    
+    static let oauthConfig = OAuthConfig(
+        clientID: ProcessInfo.processInfo.environment["SUPABASE_CLIENT_ID"] ?? "",
+        authorizeURL: "https://ibhrmenurandwvvebqfb.supabase.co/auth/v1/authorize",
+        redirectURI: "archon://auth/callback",
+        callbackScheme: "archon"
+    )
     
     // Inject session store for testability (defaults to Keychain for production)
     init(sessionStore: SessionStore = KeychainSessionStore()) {

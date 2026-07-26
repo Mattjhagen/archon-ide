@@ -9,14 +9,15 @@ protocol APIClientProtocol {
 
 class AuthenticatedAPIClient: APIClientProtocol {
     private let urlSession: URLSession
+    private let sessionStore: SessionStore
     
-    init(urlSession: URLSession = .shared) {
+    init(urlSession: URLSession = .shared, sessionStore: SessionStore = KeychainSessionStore()) {
         self.urlSession = urlSession
+        self.sessionStore = sessionStore
     }
     
     private func getAuthToken() -> String? {
-        // In a real app, securely retrieve this from Keychain
-        return UserDefaults.standard.string(forKey: "supabase_access_token")
+        return sessionStore.getToken()
     }
     
     private func performRequest<T: Decodable>(url: URL, method: String, retryCount: Int = 3) async throws -> T {
@@ -73,7 +74,7 @@ class AuthenticatedAPIClient: APIClientProtocol {
         let url = Environment.current.apiBaseURL.appendingPathComponent("agent/tasks/\(id)/cancel")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        if let token = getAuthToken() {
+        if let token = sessionStore.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         
