@@ -1,0 +1,1059 @@
+/* ============================================
+   Archon IDE — Standalone Design System
+   Dark theme, premium feel, button-first
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-void: #06060a;
+  --bg-base: #0c0c14;
+  --bg-surface: #12121e;
+  --bg-raised: #1a1a2e;
+  --bg-overlay: #22223a;
+  --bg-hover: #2a2a42;
+  --bg-active: #33334d;
+
+  --border-faint: rgba(255, 255, 255, 0.04);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #e8e8f0;
+  --text-secondary: rgba(232, 232, 240, 0.72);
+  --text-tertiary: rgba(232, 232, 240, 0.44);
+  --text-muted: rgba(232, 232, 240, 0.25);
+
+  --accent: #7c5cfc;
+  --accent-hover: #9b7eff;
+  --accent-muted: rgba(124, 92, 252, 0.12);
+  --accent-subtle: rgba(124, 92, 252, 0.06);
+  --accent-glow: rgba(124, 92, 252, 0.25);
+
+  --success: #34d399;
+  --success-muted: rgba(52, 211, 153, 0.1);
+  --warning: #fbbf24;
+  --error: #f87171;
+  --error-muted: rgba(248, 113, 113, 0.1);
+
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 100ms var(--ease);
+  --t-base: 160ms var(--ease);
+  --t-smooth: 250ms var(--ease);
+  --t-slow: 400ms var(--ease);
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 13px;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.06); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* ============================================
+   Selection
+   ============================================ */
+::selection { background: rgba(124, 92, 252, 0.3); }
+
+/* ============================================
+   Buttons — base reset
+   ============================================ */
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  line-height: 1;
+  background: transparent;
+  color: inherit;
+}
+
+/* ============================================
+   TOP BAR
+   ============================================ */
+.ide-topbar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 12px;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-faint);
+  user-select: none;
+}
+
+.ide-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 16px;
+  margin-right: 8px;
+  border-right: 1px solid var(--border-faint);
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.ide-topbar-brand svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.ide-topbar-menu {
+  display: flex;
+  gap: 1px;
+  margin-right: 12px;
+}
+
+.ide-topbar-menu button {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  border-radius: var(--r-sm);
+  transition: all var(--t-fast);
+}
+
+.ide-topbar-menu button:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.ide-topbar-tabs {
+  display: flex;
+  gap: 1px;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+.ide-topbar-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  transition: all var(--t-fast);
+}
+
+.ide-topbar-tab:hover {
+  color: var(--text-tertiary);
+  background: var(--bg-hover);
+}
+
+.ide-topbar-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.ide-topbar-tab .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.ide-topbar-tab.active .dot {
+  opacity: 1;
+}
+
+.ide-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ide-topbar-actions button {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  border-radius: var(--r-sm);
+  transition: all var(--t-fast);
+}
+
+.ide-topbar-actions button:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.ide-topbar-actions .run-btn {
+  color: var(--success);
+  background: var(--success-muted);
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  font-weight: 600;
+}
+
+.ide-topbar-actions .run-btn:hover {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+/* ============================================
+   MAIN LAYOUT
+   ============================================ */
+.ide-layout {
+  display: flex;
+  height: calc(100vh - 40px - 24px);
+  overflow: hidden;
+}
+
+/* ============================================
+   FILE EXPLORER
+   ============================================ */
+.ide-explorer {
+  width: 220px;
+  min-width: 160px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+  border-right: 1px solid var(--border-faint);
+}
+
+.ide-explorer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ide-explorer-actions button {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  border-radius: var(--r-xs);
+  transition: all var(--t-fast);
+}
+
+.ide-explorer-actions button:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.ide-explorer-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+/* ============================================
+   RESIZE HANDLES
+   ============================================ */
+.ide-resize {
+  width: 1px;
+  cursor: col-resize;
+  background: var(--border-faint);
+  flex-shrink: 0;
+  position: relative;
+  transition: background var(--t-fast);
+}
+
+.ide-resize::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: -4px; right: -4px;
+}
+
+.ide-resize:hover, .ide-resize:active {
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.ide-resize-h {
+  height: 1px;
+  cursor: row-resize;
+  background: var(--border-faint);
+  flex-shrink: 0;
+  position: relative;
+  transition: background var(--t-fast);
+}
+
+.ide-resize-h::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -4px; bottom: -4px;
+}
+
+.ide-resize-h:hover, .ide-resize-h:active {
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* ============================================
+   CENTER AREA
+   ============================================ */
+.ide-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ============================================
+   PLATFORM BAR — target selector
+   ============================================ */
+.ide-platform-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ide-platform-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.platform-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  transition: all var(--t-base);
+  white-space: nowrap;
+}
+
+.platform-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  border-color: var(--border-subtle);
+}
+
+.platform-btn.active {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.platform-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0.5;
+  transition: opacity var(--t-base);
+}
+
+.platform-btn:hover .platform-dot,
+.platform-btn.active .platform-dot {
+  opacity: 1;
+}
+
+/* ============================================
+   EDITOR AREA
+   ============================================ */
+.ide-editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ide-editor-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 4px;
+  height: 32px;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-faint);
+  overflow-x: auto;
+}
+
+.ide-editor-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.ide-line-numbers {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  background: var(--bg-base);
+  border-right: 1px solid var(--border-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 12px 8px;
+  line-height: 1.6;
+  text-align: right;
+  user-select: none;
+}
+
+.ide-welcome {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+}
+
+.welcome-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.welcome-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.welcome-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  max-width: 360px;
+}
+
+.welcome-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+  width: 100%;
+}
+
+.welcome-hint {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all var(--t-base);
+}
+
+.welcome-hint:hover {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-muted);
+}
+
+#code-editor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 12px 16px 12px 56px;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+  overflow: auto;
+}
+
+/* ============================================
+   PREVIEW / OUTPUT
+   ============================================ */
+.ide-preview-area, .ide-output-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ide-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-faint);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ide-preview-toolbar button {
+  padding: 2px 6px;
+  font-size: 14px;
+  color: var(--text-muted);
+  border-radius: var(--r-xs);
+  transition: all var(--t-fast);
+}
+
+.ide-preview-toolbar button:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+#preview-frame {
+  flex: 1;
+  border: none;
+  background: white;
+}
+
+.ide-output-body {
+  flex: 1;
+  padding: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+/* ============================================
+   TERMINAL
+   ============================================ */
+.ide-bottom-area {
+  height: 180px;
+  min-height: 80px;
+  flex-shrink: 0;
+}
+
+.ide-terminal {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-void);
+}
+
+.ide-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 8px;
+  height: 28px;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ide-terminal-header span {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--t-fast);
+}
+
+.ide-terminal-header span:hover {
+  color: var(--text-tertiary);
+}
+
+.ide-terminal-header span.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+}
+
+.ide-terminal-header .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-raised);
+  border-radius: var(--r-full);
+  margin-left: 4px;
+}
+
+.ide-terminal-body {
+  flex: 1;
+  padding: 8px 14px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.term-input-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.term-prompt {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.term-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 0;
+}
+
+/* ============================================
+   AI PANEL
+   ============================================ */
+.ide-ai-panel {
+  width: 320px;
+  min-width: 260px;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+  border-left: 1px solid var(--border-faint);
+}
+
+.ide-ai-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.ide-ai-model-select {
+  margin-left: auto;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  outline: none;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.ide-ai-model-select:hover {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+.ide-ai-model-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+.ide-ai-model-select option {
+  background: var(--bg-overlay);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   AI SUGGESTION BUTTONS
+   ============================================ */
+.ide-ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ai-suggestion {
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-full);
+  white-space: nowrap;
+  transition: all var(--t-base);
+}
+
+.ai-suggestion:hover {
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+  border-color: rgba(124, 92, 252, 0.2);
+  box-shadow: 0 0 0 1px var(--accent-muted);
+}
+
+.ai-suggestion:active {
+  transform: scale(0.97);
+}
+
+/* ============================================
+   CONNECTOR BUTTONS
+   ============================================ */
+.ide-connectors {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ide-connectors-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.ide-connector-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.connector-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  transition: all var(--t-base);
+}
+
+.connector-btn svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.5;
+  transition: opacity var(--t-base);
+}
+
+.connector-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border-color: var(--border-default);
+}
+
+.connector-btn:hover svg {
+  opacity: 0.8;
+}
+
+.connector-btn:active {
+  transform: scale(0.97);
+}
+
+/* Connector-specific hover accents */
+.connector-btn[data-connector="github"]:hover {
+  border-color: rgba(240, 242, 245, 0.2);
+  box-shadow: 0 0 12px rgba(240, 242, 245, 0.05);
+}
+
+.connector-btn[data-connector="netlify"]:hover {
+  border-color: rgba(50, 230, 226, 0.2);
+  box-shadow: 0 0 12px rgba(50, 230, 226, 0.05);
+}
+
+.connector-btn[data-connector="supabase"]:hover {
+  border-color: rgba(62, 207, 142, 0.2);
+  box-shadow: 0 0 12px rgba(62, 207, 142, 0.05);
+}
+
+.connector-btn[data-connector="vercel"]:hover {
+  border-color: rgba(245, 245, 245, 0.2);
+  box-shadow: 0 0 12px rgba(245, 245, 245, 0.05);
+}
+
+/* ============================================
+   AI MESSAGES
+   ============================================ */
+.ide-ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================
+   AI INPUT
+   ============================================ */
+.ide-ai-input-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-faint);
+}
+
+.ide-ai-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  outline: none;
+  resize: none;
+  min-height: 36px;
+  max-height: 120px;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.ide-ai-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+.ide-ai-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ide-ai-send {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  color: white;
+  background: var(--accent);
+  border-radius: var(--r-md);
+  flex-shrink: 0;
+  transition: all var(--t-base);
+}
+
+.ide-ai-send:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.ide-ai-send:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   STATUS BAR
+   ============================================ */
+.ide-statusbar {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-faint);
+  user-select: none;
+  gap: 16px;
+}
+
+.ide-statusbar .right {
+  margin-left: auto;
+  display: flex;
+  gap: 16px;
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================ */
+.ide-tooltip {
+  position: fixed;
+  z-index: 1000;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  max-width: 280px;
+  white-space: nowrap;
+}
+
+.ide-tooltip.visible {
+  opacity: 1;
+}
+
+/* ============================================
+   MODAL
+   ============================================ */
+.ide-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.15s var(--ease) both;
+}
+
+.ide-modal {
+  width: min(420px, calc(100% - 40px));
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fadeInScale 0.2s var(--ease) both;
+}
+
+.ide-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-faint);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ide-modal-header button {
+  padding: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+  border-radius: var(--r-xs);
+  transition: all var(--t-fast);
+}
+
+.ide-modal-header button:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.ide-modal-body {
+  padding: 16px;
+}
+
+.ide-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-faint);
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 768px) {
+  .ide-platform-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ide-ai-panel {
+    width: 280px;
+    min-width: 240px;
+  }
+
+  .ide-explorer {
+    width: 180px;
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 600px) {
+  .ide-explorer {
+    display: none;
+  }
+
+  .ide-ai-panel {
+    display: none;
+  }
+
+  .ide-topbar-tabs {
+    display: none;
+  }
+}
